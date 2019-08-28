@@ -22,9 +22,6 @@ import ballerina/math;
 import ballerina/mysql;
 import ballerina/sql;
 import ballerina/runtime;
-//import ballerina/crypto;
-//import ballerina/encoding;
-
 import wso2/ethereum;
 import wso2/utils;
 
@@ -133,7 +130,7 @@ service uiServiceHolderLogin on uiHolderLogin {
         return;
    }
 
-      @http:ResourceConfig {
+    @http:ResourceConfig {
         methods:["GET"],
         path:"/home/did",
         cors: {
@@ -146,7 +143,7 @@ service uiServiceHolderLogin on uiHolderLogin {
        string username = requestVariableMap["username"]  ?: "";
 
            if(utils:fileExists(holderRepo + "/did.json") == "-1") {
-            if ((!(username.equalsIgnoreCase(""))) && authenticatedMap[username] == true) {
+                if ((!(username.equalsIgnoreCase(""))) && authenticatedMap[username] == true) {
                     var buffer = readFile("web/holder-homepage-no-did.html");
 
                     http:Response res = new;
@@ -190,7 +187,7 @@ service uiServiceHolderLogin on uiHolderLogin {
                     }
                 }
            } else {
-                    if ((!(username.equalsIgnoreCase(""))) && authenticatedMap[username] == true) {
+                if ((!(username.equalsIgnoreCase(""))) && authenticatedMap[username] == true) {
                     var buffer = readFile("web/holder-homepage-with-did.html");
                     var didTxt = readFile(holderRepo + "/did.json");
                     http:Response res = new;
@@ -269,12 +266,10 @@ service uiServiceHolderLogin on uiHolderLogin {
                     while (i < l) {
                         tbl = tbl + "<tr><td><a href=\"#\" onclick=\"showVC('" + jsonConversionRet[i]["id"].toString() + "');\">";
                         tbl = tbl + jsonConversionRet[i]["id"].toString();
-                        //io:println(jsonConversionRet[i]["id"]);
                         tbl = tbl + "</a></td><td>";
                         tbl = tbl + jsonConversionRet[i]["name"].toString();
                          tbl = tbl + "</td><td>";
                         tbl = tbl + jsonConversionRet[i]["issuer"].toString();
-                        //io:println(jsonConversionRet[i]["issuer"]);
                         i = i + 1;
                     }
                     tbl += "</td></tr></table>";
@@ -353,11 +348,8 @@ service uiServiceHolderLogin on uiHolderLogin {
         }
     }
    resource function listVC(http:Caller caller, http:Request req, string name, string message) returns error? {
-        //var requestVariableMap = req.getQueryParams();
         map<string> requestVariableMap = check req.getFormParams();
-        //string username = requestVariableMap["username"]  ?: "";
         string did = requestVariableMap["did"]  ?: "";
-        io:println("did:" + did);
         var selectRet = ssiDB->select(untaint "select id, issuer, name from ssidb.vclist where (did LIKE '"+ untaint did +"');", ());
         string tbl = "<table><tr><td>No Verifiable credentials associated with your account yet.";
 
@@ -373,13 +365,11 @@ service uiServiceHolderLogin on uiHolderLogin {
                     while (i < l) {
                         tbl = tbl + "<tr><td><a href=\"#\" onclick=\"showVC('" + jsonConversionRet[i]["id"].toString() + "');\">";
                         tbl = tbl + jsonConversionRet[i]["id"].toString();
-                        //io:println(jsonConversionRet[i]["id"]);
                         tbl = tbl + "</a></td><td>";
                         tbl = tbl + jsonConversionRet[i]["name"].toString();
                          tbl = tbl + "</td><td>";
                         tbl = tbl + jsonConversionRet[i]["issuer"].toString();
                         tbl = tbl + "</td><td><input type=\"checkbox\" id=\"" + jsonConversionRet[i]["id"].toString()  + "\" name=\"vcselect\"\\>";
-                        //io:println(jsonConversionRet[i]["issuer"]);
                         i = i + 1;
                     }
                     tbl += "</td></tr></table><br/><input id=\"vc-btn\" type=\"button\" value=\"Submit VC\" onclick=\"submitVC()\">";
@@ -391,62 +381,19 @@ service uiServiceHolderLogin on uiHolderLogin {
             io:println("Select data from vclist table failed");
         }
 
-        // if ((!(username.equalsIgnoreCase(""))) && authenticatedMap[username] == true) {
-        //     var buffer = readFile("web/holder-homepage-vc.html");
-        //     var didTxt = "";
-        //     if(utils:fileExists(holderRepo + "/did.json") == "-1") {
-        // 	    io:println("Cannot find the DID file.");
-	    //     } else {
-        //         didTxt = readFile(holderRepo + "/did.json");
-        //     }
-
         http:Response res = new;
         var buffer = tbl;
 
-        //     if (caller.localAddress.host != "") {
-        //         buffer = buffer.replace("localhost", caller.localAddress.host);
-        //         buffer = buffer.replace("EMPTYUNAME", username);
-        //         io:println("tbl:" + tbl);
-        //         buffer = buffer.replace("VCTABLE", tbl);
-        //         buffer = buffer.replace("DIDMID", did);
-                
-        //         didTxt = utils:stringToBinaryString(didTxt);
-        //         buffer = buffer.replace("DIDTXTVAL", didTxt);
-        //     }
+        res.setPayload(untaint buffer);
+        res.setContentType("text/html; charset=utf-8");
+        res.setHeader("Access-Control-Allow-Origin", "*");
+        res.setHeader("Access-Control-Allow-Methods", "POST,GET,PUT,DELETE");
+        res.setHeader("Access-Control-Allow-Headers", "Authorization, Lang");
 
-            res.setPayload(untaint buffer);
-            res.setContentType("text/html; charset=utf-8");
-            res.setHeader("Access-Control-Allow-Origin", "*");
-            res.setHeader("Access-Control-Allow-Methods", "POST,GET,PUT,DELETE");
-            res.setHeader("Access-Control-Allow-Headers", "Authorization, Lang");
-
-            var result = caller->respond(res);
-            if (result is error) {
-                log:printError("Error sending response", err = result);
-            }
-        // } else {
-        //     io:println("Error login");
-
-        //     string buffer = readFile("web/error.html");
-        //     string hostname = "localhost";
-
-        //     if (caller.localAddress.host != "") {
-        //         hostname= caller.localAddress.host;
-        //     }
-        //     buffer = buffer.replace("MSG", "Re-try login via : <a href='http://" + caller.localAddress.host + ":9091'>Login Page</a>");
-
-        //     http:Response res = new;
-        //     res.setPayload(untaint buffer);
-        //     res.setContentType("text/html; charset=utf-8");
-        //     res.setHeader("Access-Control-Allow-Origin", "*");
-        //     res.setHeader("Access-Control-Allow-Methods", "POST,GET,PUT,DELETE");
-        //     res.setHeader("Access-Control-Allow-Headers", "Authorization, Lang");
-
-        //     var result = caller->respond(res);
-        //     if (result is error) {
-        //             log:printError("Error sending response", err = result);
-        //     }
-        // }
+        var result = caller->respond(res);
+        if (result is error) {
+            log:printError("Error sending response", err = result);
+        }
    }
 
     @http:ResourceConfig {
@@ -470,8 +417,6 @@ service uiServiceHolderLogin on uiHolderLogin {
             string finalResult = sendTransactionAndgetHash(publicKey);
 
             if (finalResult == "-1") {
-                //If its error
-                io:println("its is null--->"+finalResult);
                 http:Response res = new;
                 res.setPayload(untaint "null");
                 res.setContentType("text/html; charset=utf-8");
@@ -491,14 +436,12 @@ service uiServiceHolderLogin on uiHolderLogin {
                     "\"@context\": \"https://w3id.org/did/v1\"," +
                     "\"id\": \"did:ethr:"+ finalResult +"\"," +
                     "\"authentication\": [{" +
-                    // used to authenticate as did:...fghi
                     "\"id\": \"did:ethr:" + finalResult + "#keys-1\"," +
                     "\"type\": \"RsaVerificationKey2018\"," +
                     "\"controller\": \"did:ethr:" + finalResult + "\"," +
                     "\"publicKeyPem\": \"" + publicKey + "\"" +
                     "}]," +
                     "\"service\": [{" +
-                    // used to retrieve Verifiable Credentials associated with the DID
                     "\"type\": \"VerifiableCredentialService\"," +
                     "\"serviceEndpoint\": \"" + verifiableCredentialsRepositoryURL + "\"" +
                     "}]" +
@@ -569,7 +512,6 @@ service uiServiceHolderLogin on uiHolderLogin {
                 if (selectRet2 is table<record {}>) {
                     var jsonConversionRet = json.convert(selectRet2);
                     if (jsonConversionRet is json) {
-                        // io:print("JSON: ");
                         io:println(io:sprintf("%s", jsonConversionRet));
 
                         int l = jsonConversionRet.length();
@@ -586,7 +528,6 @@ service uiServiceHolderLogin on uiHolderLogin {
                                 tbl = tbl + jsonConversionRet[i]["name"].toString();
                                 tbl = tbl + "</td><td>";
                                 tbl = tbl + jsonConversionRet[i]["issuer"].toString();
-                                //io:println(jsonConversionRet[i]["issuer"]);
                                 i = i + 1;
                             }
                             tbl += "</td></tr></table>";
@@ -597,8 +538,6 @@ service uiServiceHolderLogin on uiHolderLogin {
                 } else {
                     io:println("Select data from vclist table failed");
                 }
-
-
 
             http:Response res = new;
             res.setPayload(untaint tbl);
@@ -789,12 +728,6 @@ service basic on new http:WebSocketListener(9093) {
     byte[] pingData = ping.toByteArray("UTF-8");
 
     resource function onOpen(http:WebSocketCaller caller) {
-        io:println("\nNew client connected");
-        io:println("Connection ID: " + caller.id);
-        io:println("Negotiated Sub protocol: " + caller.negotiatedSubProtocol);
-        io:println("Is connection open: " + caller.isOpen);
-        io:println("Is connection secured: " + caller.isSecure);
-
         while(true) {
             var err = caller->pushText(pk);
             if (err is error) {
@@ -806,9 +739,6 @@ service basic on new http:WebSocketListener(9093) {
 
     resource function onText(http:WebSocketCaller caller, string text,
                                 boolean finalFrame) {
-        io:println("\ntext message: " + text + " & final fragment: "
-                                                        + finalFrame);
-
         if (text == "ping") {
             io:println("Pinging...");
             var err = caller->ping(self.pingData);
@@ -858,13 +788,6 @@ service basic on new http:WebSocketListener(9093) {
 
     resource function onIdleTimeout(http:WebSocketCaller caller) {
         io:println("\nReached idle timeout");
-        // io:println("Closing connection " + caller.id);
-        // var err = caller->close(statusCode = 1001, reason =
-        //                             "Connection timeout");
-        // if (err is error) {
-        //     log:printError("Error occured when closing the connection",
-        //                         err = err);
-        // }
     }
 
     resource function onError(http:WebSocketCaller caller, error err) {
@@ -926,7 +849,6 @@ public function sendTransactionAndgetHash(string data) returns (string) {
                 if (jsonResponse is json) {
                     if (jsonResponse["error"] == null) {
                         finalResult2 = jsonResponse.result.toString();
-                        //finalResult = convertHexStringToString(inputString);
                     } else {
                             error err = error("(wso2/ethereum)EthereumError",
                             { message: "Error occurred while accessing the JSON payload of the response" });
@@ -944,11 +866,7 @@ public function sendTransactionAndgetHash(string data) returns (string) {
                 errorFlag2 = true;
             }
 
-            //byte[] output = crypto:hashSha256(publicKey.toByteArray("UTF-8"));
-            //string hexEncodedString = "0xe1db84093f660c49846c87cf626ade2bc54135f2420d835cfae6ba01d5d903e2";//encoding:encodeHex(output);
-            string hexEncodedString = "0x" + utils:hashSHA256(data);//encoding:encodeHex(output);
-            //io:println("Hex encoded hash with SHA256: " + hexEncodedString);
-            //Next we will write the blockchain record
+            string hexEncodedString = "0x" + utils:hashSHA256(data);
             http:Request request = new;
             request.setHeader("Content-Type", "application/json");
             request.setJsonPayload({"jsonrpc":"2.0", "id":"2000", "method":"eth_sendTransaction", "params":[{"from": ethereumAccount, "to":"0x6814412628addef8989ee696a67b0fad5d62735e", "data": hexEncodedString}]});

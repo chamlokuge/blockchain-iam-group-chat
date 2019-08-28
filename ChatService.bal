@@ -27,9 +27,6 @@ listener http:Listener blockChainInterfaceEP = new(9096);
 
 map<string> sessionMap = {};
 map<boolean> authenticatedMap = {};
-//map<string> functionMap = {"miyurud@wso2.com": "0x246e4756", "isurup@wso2.com": "0xc3d68039", "nadheesh@wso2.com": "0xe2a65ca2"};
-//6d4ce63c
-map<string> functionMap = {"miyurud@wso2.com": "0x6d4ce63c", "isurup@wso2.com": "0xc3d68039", "nadheesh@wso2.com": "0xe2a65ca2"};
 string chatBuffer = "";
 
 ethereum:EthereumConfiguration ethereumConfig = {
@@ -169,12 +166,10 @@ service uiService on uiEP {
     }
    resource function authenticationPage(http:Caller caller, http:Request req, string name, string message) returns error?{
         string buffer = "";
-        io:println("Got request---->");
         map<string> requestVariableMap = check req.getFormParams();
 
     if (requestVariableMap["command"] == "authenticate") {
             var did = requestVariableMap["did"] ?: "";
-            io:println("++++++++++++++++++++++++++++++>" + did);
             did = did.replace("%2C", ",");
             int index2 = did.indexOf("\"id\": \"did:ethr:") + 16;
             string didmid = did.substring(index2, index2+64);
@@ -244,10 +239,7 @@ service uiService on uiEP {
             var did = requestVariableMap["did"] ?: "";
             var encryptedval = requestVariableMap["encryptedval"] ?: "";
 
-            io:println("=====+++======>DID:" + did);
-
             did = did.replace("%2C", ",");
-            //did = utils:binaryStringToString(did);
             int index2 = did.indexOf("\"id\": \"did:ethr:") + 16;
             string didmid = did.substring(index2, index2+64);
 
@@ -261,8 +253,6 @@ service uiService on uiEP {
             string randKey = sessionMap[didmid]?: "";
 
             if (encryptedval === randKey) {
-                // var verifiableCredentialsList = getVerifiableCredentials(didmidOrg);
-
                 io:println("Challenge response authentication was successful.");
                 var finalResult = "successful";
 
@@ -289,21 +279,13 @@ service uiService on uiEP {
             }
         } else if (requestVariableMap["command"] == "vcsubmit") {
             var did = requestVariableMap["did"] ?: "";
-            //var publicKey = requestVariableMap["publicKey"] ?: "";
-            io:println("------------>>>>>>>>>" + did);
-
             var vc = requestVariableMap["vc"] ?: "";
-            //var publicKey = requestVariableMap["publicKey"] ?: "";
-            io:println("------++++------>>>>>>>>>" + vc);
             int index2 = vc.indexOf("\"homeCountry\": {") + 41;
-            string didmid = vc.substring(index2, index2+64);
-            io:println("==?>" + didmid);
+            string didmid = vc.substring(index2, index2 + 64);
             string hash = readHashFromBloackchain("0x"+didmid);
-            io:println("==+>" + hash);
 
             index2 = hash.indexOf("\"input\":\"") + 9;
-            hash = hash.substring(index2, index2+66);
-            io:println("==+++>" + hash);
+            hash = hash.substring(index2, index2 + 66);
             string hexEncodedString = "0x" + utils:hashSHA256("USA");
             string buffer2 = "";
             string hostname = "localhost";
@@ -314,8 +296,6 @@ service uiService on uiEP {
             } else {
                 buffer2 = "http://" + hostname + ":9097";
             }
-
-            io:println(buffer2);
 
             http:Response res = new;
             res.setPayload(untaint buffer2);
@@ -328,7 +308,7 @@ service uiService on uiEP {
         }
    }
 
-      @http:ResourceConfig {
+    @http:ResourceConfig {
         methods:["GET"],
         path:"/home"
    }
@@ -426,106 +406,102 @@ public function setResponseError(json jsonResponse) returns error {
         }
     }
    resource function sayHello(http:Caller caller, http:Request req, string name, string message) {
-    string resultBuffer = "";
+        string resultBuffer = "";
 
-    map<string> requestVariableMap = req. getQueryParams();
-    var logoutFlag = requestVariableMap["logout"]  ?: "false";
-    boolean flg = boolean.convert(logoutFlag);
-    string uname = requestVariableMap["username"]  ?: "";
-    
-    string hostname = "localhost";
-
-    if (caller.localAddress.host != "") {
-       hostname= caller.localAddress.host;
-    }
-
-    
-
-    string buffer = "http://" + hostname + ":9093";
-    
-    if (flg) {
+        map<string> requestVariableMap = req. getQueryParams();
+        var logoutFlag = requestVariableMap["logout"]  ?: "false";
+        boolean flg = boolean.convert(logoutFlag);
+        string uname = requestVariableMap["username"]  ?: "";
         
-        authenticatedMap[uname] = false;
-        sessionMap[uname] = "";
-        io:println(uname + " logged out.");
+        string hostname = "localhost";
 
-       http:Response res = new;
-       res.setPayload(untaint buffer);
-       res.setContentType("text/html; charset=utf-8");
+        if (caller.localAddress.host != "") {
+        hostname= caller.localAddress.host;
+        }
 
-       var result = caller->respond(res);
-       if (result is error) {
-            log:printError("Error sending response", err = result);
-       }
-
-        return;
-    }
-
+        string buffer = "http://" + hostname + ":9093";
     
-    string functionToCall = functionMap[uname] ?: "";
-    io:println("++++> hostname: " + functionToCall);
-    http:Request request = new;
-    request.setHeader("Content-Type", "application/json");
-    request.setJsonPayload({"jsonrpc":"2.0", "id":"2000", "method":"eth_call", "params":[{"from": "0x88c9a72c84636bd5f39fe63cf4440214be31c061", "to":"0xbd7bc5b627cce81bf916b9f621ad79b96a4d7df1", "data": functionToCall}, "latest"]});
-    
-    string finalResult = "";
-    boolean errorFlag = false;
-    var httpResponse = ethereumClient -> post("/", request);
-    if (httpResponse is http:Response) {
-        int statusCode = httpResponse.statusCode;
-        var jsonResponse = httpResponse.getJsonPayload();
-        if (jsonResponse is json) {
-            if (jsonResponse["error"] == null) {
-                string inputString = jsonResponse.result.toString();
-                finalResult = convertHexStringToString(inputString);
+        if (flg) {
+            
+            authenticatedMap[uname] = false;
+            sessionMap[uname] = "";
+            io:println(uname + " logged out.");
+
+        http:Response res = new;
+        res.setPayload(untaint buffer);
+        res.setContentType("text/html; charset=utf-8");
+
+        var result = caller->respond(res);
+        if (result is error) {
+                log:printError("Error sending response", err = result);
+        }
+
+            return;
+        }
+
+        string functionToCall = functionMap[uname] ?: "";
+        http:Request request = new;
+        request.setHeader("Content-Type", "application/json");
+        request.setJsonPayload({"jsonrpc":"2.0", "id":"2000", "method":"eth_call", "params":[{"from": "0x88c9a72c84636bd5f39fe63cf4440214be31c061", "to":"0xbd7bc5b627cce81bf916b9f621ad79b96a4d7df1", "data": functionToCall}, "latest"]});
+        
+        string finalResult = "";
+        boolean errorFlag = false;
+        var httpResponse = ethereumClient -> post("/", request);
+        if (httpResponse is http:Response) {
+            int statusCode = httpResponse.statusCode;
+            var jsonResponse = httpResponse.getJsonPayload();
+            if (jsonResponse is json) {
+                if (jsonResponse["error"] == null) {
+                    string inputString = jsonResponse.result.toString();
+                    finalResult = convertHexStringToString(inputString);
+                } else {
+                        error err = error("(wso2/ethereum)EthereumError",
+                        { message: "Error occurred while accessing the JSON payload of the response" });
+                        finalResult = jsonResponse["error"].toString();
+                        errorFlag = true;
+                }
             } else {
-                    error err = error("(wso2/ethereum)EthereumError",
-                    { message: "Error occurred while accessing the JSON payload of the response" });
-                    finalResult = jsonResponse["error"].toString();
-                    errorFlag = true;
+                error err = error("(wso2/ethereum)EthereumError",
+                { message: "Error occurred while accessing the JSON payload of the response" });
+                finalResult = jsonResponse.reason();
+                errorFlag = true;
             }
         } else {
-            error err = error("(wso2/ethereum)EthereumError",
-            { message: "Error occurred while accessing the JSON payload of the response" });
-            finalResult = jsonResponse.reason();
+            error err = error("(wso2/ethereum)EthereumError", { message: "Error occurred while invoking the Ethererum API" });
             errorFlag = true;
         }
-    } else {
-        error err = error("(wso2/ethereum)EthereumError", { message: "Error occurred while invoking the Ethererum API" });
-        errorFlag = true;
-    }
 
-    if (!errorFlag) {
-        string hashKey = untaint finalResult;
-        io:ReadableCharacterChannel sourceChannel = new (io:openReadableFile("key-db/" + untaint uname + "/" + hashKey), "UTF-8");
-        var readableRecordsChannel = new io:ReadableTextRecordChannel(sourceChannel, fs = ",", rs = "\n");
-        while (readableRecordsChannel.hasNext()) {
-            var result = readableRecordsChannel.getNext();
-            if (result is string[]) {
-                string randKey = generateRandomKey(16);
-                sessionMap[uname] = randKey;
-                finalResult = utils:encryptRSAWithPublicKey(result[0], randKey);
-            } else {
-                //return result; // An IO error occurred when reading the records.
+        if (!errorFlag) {
+            string hashKey = untaint finalResult;
+            io:ReadableCharacterChannel sourceChannel = new (io:openReadableFile("key-db/" + untaint uname + "/" + hashKey), "UTF-8");
+            var readableRecordsChannel = new io:ReadableTextRecordChannel(sourceChannel, fs = ",", rs = "\n");
+            while (readableRecordsChannel.hasNext()) {
+                var result = readableRecordsChannel.getNext();
+                if (result is string[]) {
+                    string randKey = generateRandomKey(16);
+                    sessionMap[uname] = randKey;
+                    finalResult = utils:encryptRSAWithPublicKey(result[0], randKey);
+                } else {
+                    //return result; // An IO error occurred when reading the records.
+                }
             }
+        } else {
+            io:println("An error has ocurred.");
         }
-    } else {
-        io:println("An error has ocurred.");
-    }
 
-       http:Response res = new;
-       // A util method that can be used to set string payload.
-       res.setPayload(untaint finalResult);
-       res.setContentType("text/html; charset=utf-8");
-       res.setHeader("Access-Control-Allow-Origin", "*");
-       res.setHeader("Access-Control-Allow-Methods", "POST,GET,PUT,DELETE");
-       res.setHeader("Access-Control-Allow-Headers", "Authorization, Lang");
+        http:Response res = new;
+        // A util method that can be used to set string payload.
+        res.setPayload(untaint finalResult);
+        res.setContentType("text/html; charset=utf-8");
+        res.setHeader("Access-Control-Allow-Origin", "*");
+        res.setHeader("Access-Control-Allow-Methods", "POST,GET,PUT,DELETE");
+        res.setHeader("Access-Control-Allow-Headers", "Authorization, Lang");
   
-       // Sends the response back to the client.
-       var result = caller->respond(res);
-       if (result is error) {
+        // Sends the response back to the client.
+        var result = caller->respond(res);
+        if (result is error) {
             log:printError("Error sending response", err = result);
-       }
+        }
    }
 }
 
@@ -540,12 +516,6 @@ service basic on new http:WebSocketListener(9098) {
     byte[] pingData = ping.toByteArray("UTF-8");
 
     resource function onOpen(http:WebSocketCaller caller) {
-        io:println("\nNew client connected");
-        io:println("Connection ID: " + caller.id);
-        io:println("Negotiated Sub protocol: " + caller.negotiatedSubProtocol);
-        io:println("Is connection open: " + caller.isOpen);
-        io:println("Is connection secured: " + caller.isSecure);
-
         var err = caller->pushText(chatBuffer);
         if (err is error) {
             log:printError("Error occurred when sending text", err = err);
@@ -554,11 +524,7 @@ service basic on new http:WebSocketListener(9098) {
 
     resource function onText(http:WebSocketCaller caller, string text,
                                 boolean finalFrame) {
-        io:println("\ntext message: " + text + " & final fragment: "
-                                                        + finalFrame);
-
         if (text == "ping") {
-            io:println("Pinging...");
             var err = caller->ping(self.pingData);
             if (err is error) {
                 log:printError("Error sending ping", err = err);
