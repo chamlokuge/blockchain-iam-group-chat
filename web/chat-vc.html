@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script type="text/javascript" src="http://localhost:9097/jsencrypt.js"></script>
+<script type="text/javascript" src="http://localhost:9097/browser-aes.js"></script>
+<script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+<!-- <script>
+    $(document).ready(function() {
+        $("#vc-btn").click( function() {
+          console.log('result:');
+        });
+      });
+</script> -->
+<!-- <script>
+  function submitVC(){
+    console.log('result:');
+  }
+</script> -->
+<script>
+$("document").on('click', '#vc-btn', function(){ console.log('result:'); });
+</script>
+<script>
+function encryptAES(plainText, kk, ii) {
+    var crypto = require('crypto');
+    var encrypt = new JSEncrypt();
+    keyBase64 = Buffer.from(kk).toString('base64');
+    ivBase64 = Buffer.from(ii).toString('base64');
+    var key = Buffer.from(keyBase64, 'base64');
+    var iv = Buffer.from(ivBase64, 'base64');
+
+    var cipher = crypto.createCipheriv(getAlgorithm(kk), key, iv);
+    cipher.update(plainText, 'utf8', 'base64')
+    return cipher.final('base64');
+}
+</script>
+
+<script>
+function decryptRSA(encrypted) {
+   var decrypt = new JSEncrypt();
+   decrypt.setPrivateKey(document.getElementById('privkey').value);
+   var uncrypted = decrypt.decrypt(encrypted);
+
+   return uncrypted;
+}
+
+function showVC(dt){
+  // var win = window.open('', '',"toolbar=no, width=100, height=20");
+  // var doc = win.document.open();
+  var w = 400;
+  var h = 600;
+  var left = (screen.width/2)-(w/2);
+  var top = (screen.height/2)-(h/2);
+
+
+  var xhttp = new XMLHttpRequest();
+  var vc = "";
+  var params = "command=cmd3&id=" + dt; 
+  xhttp.onreadystatechange = function() {
+    if (this.readyState == 4 && this.status == 200) {
+      console.log("response :" + this.responseText);
+      if (this.responseText == "no-vc-for-this-did") {
+        vc = 'Verifiable credential data could not be found.';
+      } else {
+        vc = this.responseText;
+      }
+
+      var win = window.open('', 'Verifiable credential of did:ethr:' + dt, 'toolbar=no, location=no, directories=no, status=no, menubar=no, scrollbars=no, resizable=no, copyhistory=no, width='+w+', height='+h+', top='+top+', left='+left);
+      var doc = win.document.open();
+    }
+
+    doc.write('<html><body>' + vc + '</body></html>');
+    doc.close();
+  };
+  xhttp.open("POST", "http://localhost:9091/api", true);
+  xhttp.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+  xhttp.send(params);
+}
+
+function send(encryptedval) {
+  var xhttp = new XMLHttpRequest();
+  var urlEncodedDataPairs = [];
+  console.log('encryptedval:' + encryptedval);
+  var params = "did=" + document.getElementById('didTxt').value + "&encryptedval=" + encryptedval + "&command=encresponse"; 
+
+  xhttp.onreadystatechange = function() {
+    if (this.readyState == 4 && this.status == 200) {
+      console.log('resp: ' + this.responseText);
+    }
+  };
+  xhttp.open("POST", "http://localhost:9097/authentication", true);
+  xhttp.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+  xhttp.send(params);
+}
+
+</script>
+
+<script type="text/javascript">
+
+function send(encryptedval) {
+  var xhttp = new XMLHttpRequest();
+  var urlEncodedDataPairs = [];
+  console.log('encryptedval:' + encryptedval);
+  var params = "did=" + document.getElementById('didTxt').value + "&encryptedval=" + encryptedval + "&command=encresponse"; 
+
+  xhttp.onreadystatechange = function() {
+    if (this.readyState == 4 && this.status == 200) {
+      console.log('resp: ' + this.responseText);
+
+      if (this.responseText.includes('|')) {
+        var splitRes = this.responseText.split('|');
+        console.log('splitRes: ' + splitRes[1]);
+
+        var didText = document.getElementById('didTxt').value;
+        var idx = didText.indexOf('{"type": "VerifiableCredentialService","serviceEndpoint": "') + 59;
+        var url = didText.substring(idx);
+        var endIdx = url.indexOf('"');
+        url = url.substring(0, endIdx);
+
+        //The following is temporary fix
+        url = url.replace('https', 'http');
+
+        console.log('url: ' + url);
+
+        var idxMid = didText.indexOf('"id": "did:ethr:') + 16;
+        var didmid = didText.substring(idxMid, idxMid+64);
+        console.log('didmid: ' + didmid);
+        var xhttp = new XMLHttpRequest();
+        var params = "did=" + didmid; 
+        xhttp.onreadystatechange = function() {
+          if (this.readyState == 4 && this.status == 200) {
+            document.getElementById("vctable").innerHTML = this.responseText;
+          }
+        };
+      xhttp.open("POST", url, true);
+      xhttp.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+      xhttp.send(params);
+
+
+        document.getElementById('vctable').style.display = "block";
+      }
+
+      // if (this.responseText == "vc-already-exist") {
+      //       alert('Verifiable credentials are already up to date.');
+      // } else {
+      //       document.getElementById("vctable").innerHTML = this.responseText;
+      // }
+    }
+  };
+  xhttp.open("POST", "http://localhost:9097/authentication", true);
+  xhttp.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+  xhttp.send(params);
+}
+</script>
+
+</head>
+<body>
+
+<h2>Verifiable Credentials</h2>
+<h4>Please select appropriate verifiable credentials and click submit button.</h4>
+<body>
+<table>
+<tr>
+    <td>
+        <div id="vctable" hidden>
+            VCTABLE
+        </div>
+    </td>
+</tr>
+</table>
+<br/>
+<input id="vc-btn" type="button" value="Submit" onclick="submitVC()" \>
+</body>
+</html>

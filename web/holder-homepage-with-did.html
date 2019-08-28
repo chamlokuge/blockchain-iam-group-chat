@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <!-- <script src="https://code.jquery.com/jquery-1.10.2.js"></script> -->
+    <script type="text/javascript">
+      function didFunction() {
+        window.location.replace("http://localhost:9091/home/did?username=EMPTYUNAME");
+      }
+
+      function vcFunction() {
+        window.location.replace("http://localhost:9091/home/vc?username=EMPTYUNAME&did=DIDMID");
+      }
+    </script>
+</head>
+<body bgcolor="lightblue">
+    <table border="0" width="600">
+      <tr>
+        <td>
+          <table>
+            <tr>
+                <td>
+                    <a href="javascript:void(0);" id="logout" onclick="didFunction();">DID</a>
+                </td>
+              </tr>
+                <tr>
+                <td>
+                    &nbsp;
+                  </td>
+                </tr>
+                  <tr>
+                <td>
+                    <a href="javascript:void(0);" id="logout" onclick="vcFunction();">VC</a>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  &nbsp;
+                </td>
+              </tr>
+              <tr>
+              <td>
+                  <a href="http://localhost:9091/logout?username=EMPTYUNAME" id="logout" download>Logout</a>
+              </td>
+            </tr>
+            </tr>
+          </table>
+        </td>
+        <td>
+          <table>
+            <tr>
+                <tr>
+                    <td> <h3>Your DID </h3></td>
+                </tr>
+                <tr>
+                  <td>
+                    <p id="didTxt" name="didTxt" rows="4">DIDTEXT</p>
+                    <!-- <input type="text" id="pkText" name="pkText" size=20 hidden></input> -->
+                  </td>
+                </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+</body>
+</html>

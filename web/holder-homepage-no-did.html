@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="https://code.jquery.com/jquery-1.10.2.js"></script>
+<script type="text/javascript" src="http://localhost:9091/FileSaver.js"></script>
+<script type="text/javascript" src="http://localhost:9091/jsencrypt.js"></script>
+<script type="text/javascript">
+    $(document).ready(function() {
+      $("#btn-save").click( function() {
+        var text = $("#privateKey").val();
+        var filename = "private-key"
+        var blob = new Blob([text], {type: "text/plain;charset=utf-8"});
+        saveAs(blob, filename+".txt");
+      });
+
+      $("#priv").click(function(){
+        var sKeySize = 1024;//$('#key-size').attr('data-value');
+      var keySize = parseInt(sKeySize);
+      var crypt = new JSEncrypt({default_key_size: keySize});
+      var async = false;//$('#async-ck').is(':checked');
+      var dt = new Date();
+      var time = -(dt.getTime());
+      if (async) {
+        $('#time-report').text('.');
+        var load = setInterval(function () {
+          var text = $('#time-report').text();
+          $('#time-report').text(text + '.');
+        }, 500);
+        crypt.getKey(function () {
+          clearInterval(load);
+          dt = new Date();
+          time += (dt.getTime());
+          $('#time-report').text('Generated in ' + time + ' ms');
+          $('#privateKey').val(crypt.getPrivateKey());
+          $('#pkText').val(crypt.getPublicKey());
+        });
+        return;
+      }
+      crypt.getKey();
+      dt = new Date();
+      time += (dt.getTime());
+      $('#time-report').text('Generated in ' + time + ' ms');
+      $('#privateKey').val(crypt.getPrivateKey());
+      $('#pkText').val(crypt.getPublicKey());
+      $('#publickey').html(crypt.getPublicKey());
+	
+        return false;
+      }); 
+
+      $("#submitResult").click(function(){
+
+        if ($('#securityToken').val().length == 0) {
+          $('#statusBox').html('<p style="color:red;">Please eneter valid security token issued by an issuer.</p>');
+          return;
+        }
+
+        var str = $('#didText').val();
+        var re = [];
+        var encodedStr = "";
+        for (var i = 0; i < str.length; i++) {
+          re.push(str.charCodeAt(i).toString(2));
+          encodedStr += str.charCodeAt(i).toString(2) + ",";
+        }
+
+        $.post("http://localhost:9090/api",
+        {
+          command: 'cmd1',
+          did: encodedStr,//JSON.stringify($('#didText').val()),//'kk',//$('#didText').val(),
+          secureToken: $('#securityToken').val()
+        },
+        function(data,status){
+          console.log("Data: " + data + "\nStatus: " + status);
+
+          if (data == "done" && status == "success") {
+            $('#statusBox').html('<p style="color:green;">DID registered at the Issuer successfully.</p>');
+          }
+      });
+    });
+
+      $("#generateDID").click(function(){
+        //Here we are calling Issuer's API
+        console.log($('#pkText').val());
+        $.post("http://localhost:9091/api",
+        {
+            command: 'cmd1',
+            publickey: $('#pkText').val()
+        },
+        function(data,status){
+          console.log("Data: " + data + "\nStatus: " + status);
+
+          if (data == "null") {
+            $('#statusBox').html('<p style="color:red;">Could not write to Blockchain. Please wait and try again.</p>');
+          } else {
+            $('#did').html("<p id=\"did\" name=\"did\" rows=\"4\" cols=\"50\">" + data + "</p>");
+            $('#didText').val(data);
+          }
+        });
+      });
+   });
+
+   function didFunction() {
+        window.location.replace("http://localhost:9091/home/did?username=EMPTYUNAME");
+      }
+
+      function vcFunction() {
+        alert("First get a DID created.")
+      }
+
+</script>
+</head>
+<body bgcolor="lightblue">
+    <table border="0" width="600">
+      <tr>
+        <td>
+          <table>
+            <tr>
+                <td>
+                    <a href="javascript:void(0);" id="didLink" onclick="didFunction()">DID</a>
+                    <!-- <input type="file" style="display: none" id="fls" multiple/> -->
+                </td>
+              </tr>
+                <tr>
+                <td>
+                    &nbsp;
+                  </td>
+                </tr>
+                  <tr>
+                <td>
+                    <a href="javascript:void(0);" id="vcLink" onclick="vcFunction()">VC</a>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  &nbsp;
+                </td>
+              </tr>
+              <tr>
+              <td>
+                  <a href="http://localhost:9091/logout?username=EMPTYUNAME" id="logoutLink" download>Logout</a>
+              </td>
+            </tr>
+            </tr>
+          </table>
+        </td>
+        <td>
+          <table>
+            <tr>
+                <tr>
+                    <td> Public Key </td><td>
+                    <p id="publickey" name="publickey" rows="4" cols="50"></p>
+                    <input type="text" id="pkText" name="pkText" size=20 hidden></input>
+                    <input type="text" id="privateKey" name="privateKey" size=20 hidden></input>
+                    <textarea id="textarea" rows="10" hidden></textarea>
+                    </td>
+                </tr>
+                  <tr>
+                    <td><button type="button" id="priv">Generate key pair</button></td>
+                    <td>
+                        <button id="btn-save" type="submit" class="btn btn-primary">Save private key</button>
+                    </td>
+                    </tr>
+                    <tr><td><span><i><small id="time-report"></small></i></span></td><td>&nbsp;</td></tr>
+                    <tr>
+                        <td>Issuer URL</td>
+                        <td><input type="text" id="issuerUrl" name="issuerUrl" size=20 value="http://localhost:9090/api"></input></td>
+                    </tr>
+                    <tr>
+                      <td>Decentralized Identifier (DID)</td>
+                      <td><p id="did" name="did" rows="4" cols="50"></p> <input type="text" id="didText" name="didText" size=20 hidden></input></td>
+                    </tr>
+                    <tr>
+                      <td><button type="button" id="generateDID">Generate DID</button></td>
+                    </tr>
+                    <tr>
+                      <td>Security token generated by Issuer</td>
+                      <td><input type="text" id="securityToken" name="securityToken" size=20 value=""></input></td>
+                    </tr>
+                    <tr>
+                        <td>Status</td>
+                        <td><div id="statusBox" name="statusBox"></div></td>
+                    </tr>
+                    <tr>
+                      <td><input type="button" id="submitResult" value="Register"></input></td>
+                      <td>&nbsp;</td>
+                    </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+</body>
+</html>

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<script type="text/javascript">
+function load() {
+  var uname = "";
+  var xhttp = new XMLHttpRequest();
+  var params = "username=" + document.getElementById('username').value + "&pwd=" + document.getElementById('pwd').value; 
+  xhttp.onreadystatechange = function() {
+    if (this.readyState == 4 && this.status == 200) {
+      window.location.replace("http://localhost:9091/home/did?username=" + document.getElementById('username').value + "&page=DID");
+    }
+  };
+
+  xhttp.open("POST", "http://localhost:9091/authenticate", true);
+  xhttp.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+  xhttp.send(params);
+
+  // xhttp = new XMLHttpRequest();
+  // xhttp.onreadystatechange = function() {
+  //   if (this.readyState == 4 && this.status == 200) {
+  //     window.location.replace(this.responseText);
+  //   }
+  // };
+  // xhttp.open("GET", "http://localhost:9090/home?username=" + document.getElementById('username').value, true);
+  // xhttp.setRequestHeader('Content-Type', 'text/html');
+  // xhttp.send("");
+};
+</script>
+
+</head>
+<body>
+
+<h2>Holder login</h2>
+<body bgcolor="lightblue">
+<table>
+<tr>
+<td>
+  <label for="usernameLabel">User Name:</label><br/>
+<!--<input type="text" id="username" name="username" style="display:none">-->
+</td>
+<td>
+  <input type="text" id="username" name="username">
+</td>
+</tr>
+<tr>
+<td height="10"></td>
+</tr>
+<tr>
+<td>
+  <label for="privkey">Password:</label>
+</td>
+<td>
+<input type="password" id="pwd" name="pwd">
+</td>
+</tr>
+<tr>
+<td height="10"></td>
+</tr>
+<tr>
+<td>
+<input type="button" value="Submit" onclick="load()">
+</td>
+</tr>
+</table>
+<p id="demo"></p>
+</body>
+</html>

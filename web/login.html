@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script type="text/javascript" src="http://localhost:9097/jsencrypt.js"></script>
+<script type="text/javascript" src="http://localhost:9097/browser-aes.js"></script>
+<script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+<!-- <script>
+    $(document).ready(function() {
+        $("#vc-btn").click( function() {
+          console.log('result:');
+        });
+      });
+</script> -->
+<script>
+  function submitVC(){
+    console.log('result:');
+  //   var selected = [];
+  //   $('#checkboxes input:checked').each(function() {
+  //   selected.push($(this).attr('name'));
+  // });
+    //var selected = $('#checkboxes input:checked').map(function(i,el){return el.name;}).get(); // add .join(';') 
+
+    //var selecteditems = [];
+
+// $("#Div").find("input:checked").each(function (i, ob) { 
+//     selecteditems.push($(ob).val());
+// });
+
+    //console.log(selected);
+
+
+  //   $('input[name="checkboxes"]:checked').each(function() {
+  //  console.log(this.value);
+
+
+  var tags = document.getElementsByName('vcselect');
+for(var i = 0; i < tags.length; ++i)
+{
+    if(tags[i].checked) {
+      console.log('Checked: ' + tags[i].id);
+
+      var xhttp = new XMLHttpRequest();
+      var vc = "";
+      var params = "command=cmd3&id=" + tags[i].id; 
+      xhttp.onreadystatechange = function() {
+        if (this.readyState == 4 && this.status == 200) {
+          console.log("response :" + this.responseText);
+          if (this.responseText == "no-vc-for-this-did") {
+            vc = 'Verifiable credential data could not be found.';
+          } else {
+            vc = this.responseText;
+          }
+
+        //   var win = window.open('', 'Verifiable credential of did:ethr:' + dt, 'toolbar=no, location=no, directories=no, status=no, menubar=no, scrollbars=no, resizable=no, copyhistory=no, width='+w+', height='+h+', top='+top+', left='+left);
+        //   var doc = win.document.open();
+
+        var xhttp = new XMLHttpRequest();
+        var didText = document.getElementById('didTxt').value;
+        var idxMid = didText.indexOf('"id": "did:ethr:') + 16;
+        var didmid = didText.substring(idxMid, idxMid+64);
+        var params = "command=vcsubmit&did=" + didmid + "&vc=" + vc; 
+        xhttp.onreadystatechange = function() {
+          if (this.readyState == 4 && this.status == 200) {
+            console.log(">>>>>>>>>response :" + this.responseText);
+            window.location.replace(this.responseText);
+          }
+        };
+        xhttp.open("POST", "http://localhost:9097/authentication", true);
+        xhttp.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+        xhttp.send(params);
+
+
+         }
+
+        // doc.write('<html><body>' + vc + '</body></html>');
+        // doc.close();
+      };
+      xhttp.open("POST", "http://localhost:9091/api", true);
+      xhttp.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+      xhttp.send(params);
+
+    } else {
+      alert('Please select appropriate verifiable credentials.')
+    }
+}
+
+  }
+</script>
+<script>
+$("document").on('click', '#vc-btn', function(){ console.log('result:'); });
+</script>
+<script>
+function encryptAES(plainText, kk, ii) {
+    var crypto = require('crypto');
+    var encrypt = new JSEncrypt();
+    keyBase64 = Buffer.from(kk).toString('base64');
+    ivBase64 = Buffer.from(ii).toString('base64');
+    var key = Buffer.from(keyBase64, 'base64');
+    var iv = Buffer.from(ivBase64, 'base64');
+
+    var cipher = crypto.createCipheriv(getAlgorithm(kk), key, iv);
+    cipher.update(plainText, 'utf8', 'base64')
+    return cipher.final('base64');
+}
+</script>
+
+<script>
+function decryptRSA(encrypted) {
+   var decrypt = new JSEncrypt();
+   decrypt.setPrivateKey(document.getElementById('privkey').value);
+   var uncrypted = decrypt.decrypt(encrypted);
+
+   return uncrypted;
+}
+
+function showVC(dt){
+  // var win = window.open('', '',"toolbar=no, width=100, height=20");
+  // var doc = win.document.open();
+  var w = 400;
+  var h = 600;
+  var left = (screen.width/2)-(w/2);
+  var top = (screen.height/2)-(h/2);
+
+
+  var xhttp = new XMLHttpRequest();
+  var vc = "";
+  var params = "command=cmd3&id=" + dt; 
+  xhttp.onreadystatechange = function() {
+    if (this.readyState == 4 && this.status == 200) {
+      console.log("response :" + this.responseText);
+      if (this.responseText == "no-vc-for-this-did") {
+        vc = 'Verifiable credential data could not be found.';
+      } else {
+        vc = this.responseText;
+      }
+
+      var win = window.open('', 'Verifiable credential of did:ethr:' + dt, 'toolbar=no, location=no, directories=no, status=no, menubar=no, scrollbars=no, resizable=no, copyhistory=no, width='+w+', height='+h+', top='+top+', left='+left);
+      var doc = win.document.open();
+    }
+
+    doc.write('<html><body>' + vc + '</body></html>');
+    doc.close();
+  };
+  xhttp.open("POST", "http://localhost:9091/api", true);
+  xhttp.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+  xhttp.send(params);
+}
+
+</script>
+
+<!-- <script>
+function send(encryptedval) {
+  var xhttp = new XMLHttpRequest();
+  var urlEncodedDataPairs = [];
+  var params = "username=" + document.getElementById('username').value + "&encryptedval=" + encryptedval; 
+
+  xhttp.onreadystatechange = function() {
+    if (this.readyState == 4 && this.status == 200) {
+      uncrypted = decryptRSA(this.responseText);
+    }
+  };
+  xhttp.open("POST", "http://localhost:9097/authentication", true);
+  xhttp.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+  xhttp.send(params);
+};
+</script>
+<script>
+    function sleep( millisecondsToWait )
+    {
+
+    var now = new Date().getTime();
+
+    while ( new Date().getTime() < now + millisecondsToWait )
+
+    {
+
+    }
+
+    }
+</script> -->
+
+<!-- <script>
+  function startReadPrivKey() {
+    var file = document.getElementById('file-input-priv').files[0];
+    
+    if(file){
+      getAsText(file);
+    }
+  }
+  
+  function getAsText(readFile) {
+    var reader = new FileReader();
+    reader.readAsText(readFile, "UTF-8");
+  
+    reader.onprogress = updateProgress;
+    reader.onload = loaded;
+    reader.onerror = errorHandler;
+  }
+  
+  function updateProgress(evt) {
+  
+  }
+  
+  function loaded(evt) {
+    var fileString = evt.target.result;
+  
+    document.getElementById('privkey').value = fileString;
+    console.log('++++>='+document.getElementById('privkey').value);
+  }
+  
+  function errorHandler(evt) {
+    if(evt.target.error.name == "NotReadableError") {
+      // The file could not be read
+    }
+  }
+  </script> -->
+
+<script type="text/javascript">
+
+function send(encryptedval) {
+  var xhttp = new XMLHttpRequest();
+  var urlEncodedDataPairs = [];
+  console.log('encryptedval:' + encryptedval);
+  var params = "did=" + document.getElementById('didTxt').value + "&encryptedval=" + encryptedval + "&command=encresponse"; 
+
+  xhttp.onreadystatechange = function() {
+    if (this.readyState == 4 && this.status == 200) {
+      console.log('resp: ' + this.responseText);
+
+      if (this.responseText.includes('|')) {
+        var splitRes = this.responseText.split('|');
+        $('#statusBox').html('<p style="color:blue;">Need to submit the following verifiable credential(s). Please select them from the following list.</p><p style="color:blue;">' + splitRes[1] + '</p>');
+        console.log('splitRes: ' + splitRes[1]);
+
+        var didText = document.getElementById('didTxt').value;
+        var idx = didText.indexOf('{"type": "VerifiableCredentialService","serviceEndpoint": "') + 59;
+        var url = didText.substring(idx);
+        var endIdx = url.indexOf('"');
+        url = url.substring(0, endIdx);
+
+        //The following is temporary fix
+        url = url.replace('https', 'http');
+
+        console.log('url: ' + url);
+
+        var idxMid = didText.indexOf('"id": "did:ethr:') + 16;
+        var didmid = didText.substring(idxMid, idxMid+64);
+        console.log('didmid: ' + didmid);
+        var xhttp = new XMLHttpRequest();
+        var params = "did=" + didmid; 
+        xhttp.onreadystatechange = function() {
+          if (this.readyState == 4 && this.status == 200) {
+            document.getElementById("vctable").innerHTML = this.responseText;
+          }
+        };
+      xhttp.open("POST", url, true);
+      xhttp.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+      xhttp.send(params);
+
+
+        document.getElementById('vctable').style.display = "block";
+      }
+
+      // if (this.responseText == "vc-already-exist") {
+      //       alert('Verifiable credentials are already up to date.');
+      // } else {
+      //       document.getElementById("vctable").innerHTML = this.responseText;
+      // }
+    }
+  };
+  xhttp.open("POST", "http://localhost:9097/authentication", true);
+  xhttp.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+  xhttp.send(params);
+}
+
+function load() {
+  var uname = "";
+  var xhttp = new XMLHttpRequest();
+  var did = document.getElementById('didTxt').value;
+
+  // var n = did.indexOf("\"id\":");
+  // var mid = did.substring(n+16, n+80);
+  // console.log('mid:' + mid);
+
+  var params = "command=authenticate&did=" + did; 
+  xhttp.onreadystatechange = function() {
+    if (this.readyState == 4 && this.status == 200) {
+      if (!(this.responseText === "")) {
+        console.log("this.responseText: " + this.responseText);
+        console.log("priv-key: " + document.getElementById('privkey').value);
+        unencrypted = decryptRSA(this.responseText);
+
+        console.log("this.responseText: " + unencrypted);
+
+        if (!(typeof unencrypted === "boolean")) {
+          send(unencrypted);
+        }
+     }
+    }
+  };
+
+  xhttp.open("POST", "http://localhost:9097/authentication", true);
+  xhttp.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+  xhttp.send(params);
+
+};
+</script>
+
+<script>
+function startRead() {
+  var file = document.getElementById('file-input').files[0];
+  
+  if(file){
+    getAsTextDID(file);
+  } else {
+    var file2 = document.getElementById('file-input-priv').files[0];
+    if(file2){
+      getAsTextDID(file2);
+    }
+  }
+}
+
+function getAsTextDID(readFile) {
+  var reader = new FileReader();
+  reader.readAsText(readFile, "UTF-8");
+
+  reader.onprogress = updateProgress;
+  reader.onload = loaded;
+  reader.onerror = errorHandler;
+}
+
+function updateProgress(evt) {
+
+}
+
+function loaded(evt) {
+  var fileString = evt.target.result;
+
+  if (fileString.includes('PRIVATE KEY')) {
+    document.getElementById('privkey').value = fileString;
+    document.getElementById('file-input').style.display = "block";
+    document.getElementById('didLabel').style.display = "block";
+  } else {
+    document.getElementById('didTxt').value = fileString;
+  }
+}
+
+function errorHandler(evt) {
+  if(evt.target.error.name == "NotReadableError") {
+    // The file could not be read
+  }
+}
+</script>
+
+</head>
+<body>
+
+<h2>Chat Service User Login</h2>
+<body>
+<table>
+<tr>  
+    <td>Your private key file : </td><td><input type="file" id="file-input-priv" name="file-input-priv" size=20 onchange="startRead()"></input></td><td>&nbsp;</td>
+    <input type="text" id="privkey" name="privkey" style="display:none">
+  </tr>
+<tr>
+  <td height="10"></td>
+</tr>
+<tr>
+    <td>
+      <label id="didLabel" for="didLabel" hidden>Decentralized Identifier:</label>
+    </td>
+    <td>
+    <input id="file-input" type="file" name="file-input" onchange="startRead()" hidden/>
+    <input type="text" id="didTxt" name="didTxt" hidden></input>
+    <input type="text" id="didmid" name="didmid" hidden></input>
+    </td>
+</tr>
+<tr>
+<td>
+<input type="button" value="Submit" onclick="load()">
+</td>
+</tr>
+<tr><td><div id="statusBox" name="statusBox"></div></tr>
+<tr>
+    <td>
+        <div id="vctable" hidden>
+            VCTABLE
+        </div>
+    </td>
+  </tr>
+</table>
+<p id="demo"></p>
+</body>
+</html>

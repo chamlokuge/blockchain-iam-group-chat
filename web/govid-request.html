@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+<script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+</head>
+<body>
+
+    <script>
+var socket;
+
+function generateKey(){
+  var secToken = Math.round(Math.random() * 1000000);
+  document.getElementById("randomKey").innerHTML = secToken;
+  var xhttp = new XMLHttpRequest();
+  var params = "randomKey=" + secToken;
+
+  xhttp.open("POST", "http://localhost:9090/secureTokenAPI", true);
+  xhttp.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+  xhttp.send(params);
+}
+
+$(document).ready(function() {
+  $('#button').click(function(){
+    var xhttp = new XMLHttpRequest();
+    var params = "command=cmd2&did=" + document.getElementById('chtLog').value + "&firstName=" + document.getElementById('firstName').value + "&lastName=" + document.getElementById('lastName').value
+  + "&streetAddress=" + document.getElementById('streetAddress').value + "&city=" + document.getElementById('city').value + 
+  "&state=" + document.getElementById('state').value + "&postcode=" + document.getElementById('postcode').value + "&country=" + document.getElementById('country').value + "&date=" + document.getElementById('datepicker').value; ;
+
+    xhttp.onreadystatechange = function() {
+    if (this.readyState == 4 && this.status == 200) {
+      console.log(xhttp.responseText);
+      socket.send('KKKKKKKKKKKKKKKKKKK');
+    }
+  };
+    xhttp.open("POST", "http://localhost:9090/submit", true);
+    xhttp.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+    xhttp.send(params);
+  });
+
+      if(!("WebSocket" in window)){
+  $('#chatLog, input, button, #examples').fadeOut("fast");
+  $('<p>Oh no, you need a browser that supports WebSockets. How about <a href="http://www.google.com/chrome">Google Chrome</a>?</p>').appendTo('#container');
+  }else{
+      //The user has WebSockets
+
+      connect();
+
+      function connect(){
+          //var socket;
+          var host = "ws://localhost:9095/basic/ws";
+
+          try{
+              socket = new WebSocket(host);
+
+              message('<p class="event">Socket Status: '+socket.readyState);
+
+              socket.onopen = function(){
+             	 message('<p class="event">Socket Status: '+socket.readyState+' (open)');
+              }
+
+              socket.onmessage = function(msg){
+                var res = msg.data.split("%2C");
+
+                var result = "";
+                  for (var i = 0; i < res.length; i++) {
+                    if (i < res.length - 1) {
+                      result += String.fromCharCode(parseInt(res[i], 2));
+                    }
+                  }
+
+             	  message(result);
+              }
+
+              socket.onclose = function(){
+              	message('<p class="event">Socket Status: '+socket.readyState+' (Closed)');
+              }			
+          } catch(exception){
+             message('<p>Error'+exception);
+          }
+
+          function send(){
+              try{
+                  socket.send('ping');
+              } catch(exception){
+                  console.log('Error: Pining');
+              }
+          }
+
+          function message(msg){
+            console.log(msg);
+            $('#chatLog').html(msg);
+            $('#chtLog').val(msg);
+          }
+
+          $('#disconnect').click(function(){
+             socket.close();
+          });
+
+      }//End connect
+
+  }//End else
+ });
+
+ $( function() {
+    $( "#datepicker" ).datepicker();
+  } );
+</script>
+<body>
+<link rel="stylesheet" type="text/css" href="govid-request.css">
+<table border="0" width="600">
+<tr>
+  <td><a href="http://localhost:9090/logout?uname=EMPTYUNAME" id="logout" download>Logout</a></td>
+</tr>
+<tr>
+<td>
+  <label id="firstNameLabel">First Name (*) :</label><br/>
+</td>
+</tr>
+<tr style="width: 100;">
+<td style="width: 100;">
+  <input type="text" id="firstName" name="firstName" style="width:100;" value="Alice"></input>
+</td>
+</tr>
+<tr>
+<td height="10"></td>
+</tr>
+<tr>
+<td>
+  <label id="lastNameLabel">Last Name (*) :</label>
+</td>
+</tr>
+<tr>
+<td>
+<input type="text" id="lastName" name="lastName" size=20 value="Davis"></input>
+</td>
+</tr>
+<tr>
+    <td><p>Date: <input type="text" id="datepicker" /></p></td>
+  </tr>
+<tr>
+<td height="10"></td>
+</tr>
+<tr>
+<td>
+  <label id="streetLabel">Street Address</label>
+</td>
+</tr>
+<tr>
+<td>
+<input type="text" id="streetAddress" name="streetAddress" size=20 value="787 Castro Street"></input>
+</td>
+</tr>
+<tr>
+<tr>
+<td>City
+</td>
+<td>State/Province
+</td>
+</tr>
+<tr>
+<td><input type="text" id="city" name="city" size=20 value="Mountainview"></input>
+</td>
+<td><input type="text" id="state" name="state" size=20 value="CA"></input>
+</td>
+</tr>
+<tr>
+<td>Postal Code
+</td>
+<td>Country
+</td>
+</tr>
+<tr>
+<td><input type="text" id="postcode" name="postcode" size=20 value="94041"></input>
+</td>
+<td><input type="text" id="country" name="country" size=20 value="USA"></input>
+</td>
+</tr>
+<tr>
+    <td><button type="button" id="priv" onclick="generateKey()">Generate random key</button></td>
+    <td><p id="randomKey"></p></td>
+</tr>
+<tr>
+  <td> Decentralized Identifier (DID) </td><td>
+      <p id="chatLog" name="chatLog" rows="4" cols="50"></p>
+      <input type="text" id="chtLog" name="chtLog" size=20 hidden></input>
+  </td>
+</tr>
+<tr>
+<td>
+<input type="button" id="button" value="Submit"></input>
+</td>
+</tr>
+</table>
+<p id="demo"></p>
+</body>
+</html>
