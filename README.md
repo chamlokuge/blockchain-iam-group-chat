@@ -4,3 +4,5 @@ An implementation of blockchain identity and access management (IAM) architectur
 [1] https://medium.com/@miyurud/challenge-response-protocol-based-authentication-with-blockchains-2935bf6c53d4
 
 [2] https://github.com/miyurud/group-chat-blockchain
+
+[3] https://github.com/miyurud/ballerina-eth-utils
