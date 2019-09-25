@@ -1042,13 +1042,23 @@ public function readFile(string filePath) returns string {
 }
 
 public function writeFile(string filePath, string content) returns error? {
-    io:WritableCharacterChannel destinationChannel = new(io:openWritableFile(holderRepo + "/did.json"), "UTF-8");
-    //io:WritableCharacterChannel | io:Error destinationChannel = new(io:openWritableFile(holderRepo + "/did.json"), "UTF-8");
-    var writeCharResult = check destinationChannel.write(content, 0);
+//public function writeFile(io:ReadableCharacterChannel sc, io:WritableCharacterChannel dc) returns error?{
 
+    //io:WritableCharacterChannel destinationChannel = new(io:openWritableFile(holderRepo + "/did.json"), "UTF-8");
+    io:WritableCharacterChannel | io:Error destinationChannel = new io:openWritableFile((holderRepo + "/did.json"), "UTF-8");
+
+    if(destinationChannel is io:WritableCharacterChannel){
+    // var writeCharResult = check destinationChannel.write(content, 0);
+    var writeCharResult = check destinationChannel.write(content, 0);
+    if(writeCharResult is io:Error) {
+            return writeCharResult;
+    }else{
+        io:println("content written successfully");
+    }
     var cr = destinationChannel.close();
     if (cr is error) {
         log:printError("Error occured while closing the channel: ", err = cr);
+        }
     }
     return;
 }

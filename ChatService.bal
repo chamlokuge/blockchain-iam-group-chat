@@ -22,6 +22,7 @@ import ballerina/math;
 import wso2/ethereum;
 import wso2/utils;
 import ballerina/lang.'int;
+import ballerina/stringutils;
 
 listener http:Listener uiEP = new(9097);
 listener http:Listener blockChainInterfaceEP = new(9096);
@@ -53,7 +54,9 @@ service uiService on uiEP {
         path:"/"
     }
    resource function sayHello(http:Caller caller, http:Request req, string name, string message) {
-        io:ReadableByteChannel readableByteChannel = io:openReadableFile("web/login.html");
+        // io:ReadableByteChannel readableByteChannel = io:openReadableFile("web/login.html");
+        io:ReadableByteChannel | io:Error readableByteChannel = io:openReadableFile("web/login.html");
+        if (readableByteChannel is io:ReadableByteChannel){
         var readableCharChannel = new io:ReadableCharacterChannel(readableByteChannel, "UTF-8");
         var readableRecordsChannel = new io:ReadableTextRecordChannel(readableCharChannel);
 
@@ -73,7 +76,8 @@ service uiService on uiEP {
        http:Response res = new;
 
        if (caller.localAddress.host != "") {
-           buffer= buffer.replace("localhost", caller.localAddress.host);
+        //    buffer= buffer.replace("localhost", caller.localAddress.host);
+            buffer= stringutils:replace(buffer,"localhost", caller.localAddress.host);
        }
 
        res.setPayload(<@untainted> buffer);
@@ -82,7 +86,8 @@ service uiService on uiEP {
        var result = caller->respond(res);
        if (result is error) {
             log:printError("Error sending response", err = result);
-       }
+            }
+        }
    }
 
    @http:ResourceConfig {
@@ -102,7 +107,7 @@ service uiService on uiEP {
        http:Response res = new;
 
        if (caller.localAddress.host != "") {
-           buffer= buffer.replace("localhost", caller.localAddress.host);
+           buffer= stringutils:replace(buffer,"localhost", caller.localAddress.host);
        }
 
        res.setPayload(<@untainted> buffer);
@@ -177,7 +182,8 @@ service uiService on uiEP {
     if (requestVariableMap["command"] == "authenticate") {
             var did = requestVariableMap["did"] ?: "";
             io:println("++++++++++++++++++++++++++++++>" + did);
-            did = did.replace("%2C", ",");
+            // did = did.replace("%2C", ",");
+            did = stringutils:replace(did,"%2C", ",");
             int index2 = did.indexOf("\"id\": \"did:ethr:") + 16;
             string didmid = did.substring(index2, index2+64);
 
@@ -248,7 +254,8 @@ service uiService on uiEP {
 
             io:println("=====+++======>DID:" + did);
 
-            did = did.replace("%2C", ",");
+            // did = did.replace("%2C", ",");
+            did = stringutils:replace(did,"%2C", ",");
             //did = utils:binaryStringToString(did);
             int index2 = did.indexOf("\"id\": \"did:ethr:") + 16;
             string didmid = did.substring(index2, index2+64);
@@ -336,7 +343,8 @@ service uiService on uiEP {
    }
    resource function sendHomePage(http:Caller caller, http:Request req, string name, string message) {
         map<string> requestVariableMap = req. getQueryParams();
-        io:ReadableByteChannel readableByteChannel = io:openReadableFile("web/home.html");
+        io:ReadableByteChannel | io:Error readableByteChannel = io:openReadableFile("web/home.html");
+        if(readableByteChannel is io:ReadableByteChannel){
         var readableCharChannel = new io:ReadableCharacterChannel(readableByteChannel, "UTF-8");
         var readableRecordsChannel = new io:ReadableTextRecordChannel(readableCharChannel);
 
@@ -345,7 +353,8 @@ service uiService on uiEP {
         while (readableRecordsChannel.hasNext()) {
             var result = readableRecordsChannel.getNext();
             if (result is string[]) {
-                string item = string.convert(result[0]);
+                // string item = string.convert(result[0]);
+                string item = result[0].toString();
                 buffer += item;
             } else {
                  io:println("Error");
@@ -365,8 +374,10 @@ service uiService on uiEP {
        var result = caller->respond(res);
        if (result is error) {
             log:printError("Error sending response", err = result);
-       }
-   }
+            }
+   
+        }
+    }
 }
 
 @http:ServiceConfig { basePath:"/",
