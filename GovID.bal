@@ -19,19 +19,30 @@ import ballerina/log;
 import ballerina/io;
 import ballerina/config;
 import ballerina/math;
-import ballerina/mysql;
-import ballerina/sql;
+// import ballerina/mysql;
+// import ballerina/sql;
+import ballerinax/java.jdbc;
 import wso2/ethereum;
 import wso2/utils;
 import ballerina/runtime;
 import ballerina/time;
+import ballerina/lang.'int;
+import ballerina/lang.'string;
 
 listener http:Listener uiGovIDLogin = new(9090);
+//listener http:Listener uiGovID = new(9093);
 
-mysql:Client ssiDB = new({
-        host: "192.168.32.1",
-        port: 3306,
-        name: "ssidb",
+
+// mysql:Client ssiDB = new({
+//         host: "192.168.32.1",
+//         port: 3306,
+//         name: "ssidb",
+//         username: "test",
+//         password: "test",
+//         dbOptions: { useSSL: false }
+//     });
+jdbc:Client ssiDB = new({
+        url: "jdbc:mysql://192.168.32.1:3306/ssidb",
         username: "test",
         password: "test",
         dbOptions: { useSSL: false }
@@ -45,12 +56,12 @@ string pk = "";
 string randomKey = "";
 
 ethereum:EthereumConfiguration ethereumConfig = {
-jsonRpcEndpoint: "http://192.168.32.1:8081",
+jsonRpcEndpoint: "http://192.168.32.1:8083",
 jsonRpcVersion: "2.0",
 networkId: "2000"
 };
 
-string ethereumAccount = "0xee0727d9e94dbb230233ea4bd362e4c081aabf38";
+string ethereumAccount = "0x3dd551059b5ba2fd8fe48bf5699bd54eea46bd53";
 
 string jsonRpcEndpoint = ethereumConfig.jsonRpcEndpoint;
 http:Client ethereumClient = new(jsonRpcEndpoint, config = ethereumConfig.clientConfig);
@@ -80,7 +91,7 @@ service uiServiceGovIDLogin on uiGovIDLogin {
            buffer= buffer.replace("localhost", caller.localAddress.host);
        }
 
-       res.setPayload(untaint buffer);
+       res.setPayload(<@untainted> buffer);
        res.setContentType("text/html; charset=utf-8");
        res.setHeader("Access-Control-Allow-Origin", "*");
        res.setHeader("Access-Control-Allow-Methods", "POST,GET,PUT,DELETE");
@@ -152,7 +163,7 @@ service uiServiceGovIDLogin on uiGovIDLogin {
                 buffer= buffer.replace("EMPTYUNAME", username);
             }
 
-            res.setPayload(untaint buffer);
+            res.setPayload(<@untainted> buffer);
             res.setContentType("text/html; charset=utf-8");
             res.setHeader("Access-Control-Allow-Origin", "*");
             res.setHeader("Access-Control-Allow-Methods", "POST,GET,PUT,DELETE");
@@ -174,7 +185,7 @@ service uiServiceGovIDLogin on uiGovIDLogin {
             buffer = buffer.replace("MSG", "Re-try login via : <a href='http://" + caller.localAddress.host + ":9090'>Login Page</a>");
 
             http:Response res = new;
-            res.setPayload(untaint buffer);
+            res.setPayload(<@untainted> buffer);
             res.setContentType("text/html; charset=utf-8");
             res.setHeader("Access-Control-Allow-Origin", "*");
             res.setHeader("Access-Control-Allow-Methods", "POST,GET,PUT,DELETE");
@@ -272,7 +283,10 @@ service uiServiceGovIDLogin on uiGovIDLogin {
 
         io:println(("insert into ssidb.govid(firstname, lastname, streetaddress, city, state, country, postcode, dob ,did) " + "values ('"+ firstName +"', '" + lastName + "', '" + streetAddress + "', '"+ city +"', '"+ state +"', '" + postcode + "', '" + country + "', '" + date + "', '" + did + "');"));
 
-        var ret = ssiDB->update(untaint ("insert into ssidb.govid(firstname, lastname, streetaddress, city, state, postcode, country, dob, did) " + "values ('"+ firstName +"', '" + lastName + "', '" + streetAddress + "', '"+ city +"', '"+ state +"', '" + postcode + "', '" + country + "','" + date + "', '" + did + "');"));
+        var ret = ssiDB->update(<@untainted> ("insert into ssidb.govid(firstname, lastname, streetaddress, city, state, postcode, country, dob, did) " + "values ('"+ firstName +"', '" + lastName + "', '" + streetAddress + "', '"+ city +"', '"+ state +"', '" + postcode + "', '" + country + "','" + date + "', '" + did + "');"));
+        //var ret = ssiDB->update(untaint "insert into ssidb.govid");
+
+        //handleUpdate(ret, "Insert to ssiDB");
 
         var result = caller->respond("done");
 
@@ -307,7 +321,7 @@ service uiServiceGovIDLogin on uiGovIDLogin {
            buffer= buffer.replace("localhost", caller.localAddress.host);
        }
 
-       res.setPayload(untaint buffer);
+       res.setPayload(<@untainted> buffer);
        res.setContentType("text/html; charset=utf-8");
        res.setHeader("Access-Control-Allow-Origin", "*");
        res.setHeader("Access-Control-Allow-Methods", "POST,GET,PUT,DELETE");
@@ -341,7 +355,7 @@ service uiServiceGovIDLogin on uiGovIDLogin {
                 }
             } else {
                 if (requestVariableMap.hasKey("did")) {
-                    pk = untaint requestVariableMap["did"]  ?: "";
+                    pk = <@untainted> requestVariableMap["did"]  ?: "";
                     var result = caller->respond("done");
 
                     if (result is error) {
@@ -351,6 +365,7 @@ service uiServiceGovIDLogin on uiGovIDLogin {
             }
         } else if (requestVariableMap["command"] == "requestvc") {
             var did = requestVariableMap["did"] ?: "";
+            //var publicKey = requestVariableMap["publicKey"] ?: "";
 
             did = did.replace("%2C", ",");
             did = utils:binaryStringToString(did);
@@ -365,7 +380,7 @@ service uiServiceGovIDLogin on uiGovIDLogin {
             didmid = "0x" + didmid;
             http:Request request = new;
             request.setHeader("Content-Type", "application/json");
-            request.setJsonPayload({"jsonrpc":"2.0", "id":"2000", "method":"eth_getTransactionByHash", "params":[untaint didmid]});
+            request.setJsonPayload({"jsonrpc":"2.0", "id":"2000", "method":"eth_getTransactionByHash", "params":[<@untainted> didmid]});
             
             string finalResult = "";
             string pkHash = "";
@@ -401,13 +416,14 @@ service uiServiceGovIDLogin on uiGovIDLogin {
                 string randKey = generateRandomKey(16);
                 sessionMap[didmid] = randKey;
                 finalResult = utils:encryptRSAWithPublicKey(publicKey, randKey);
+                //finalResult = check crypto:encryptAesEcb(inputArr, rsaKeyArr, crypto:NONE);
             } else {
                 finalResult = "Failure in Key Verification";
             }
 
             http:Response res = new;
             // A util method that can be used to set string payload.
-            res.setPayload(untaint finalResult);
+            res.setPayload(<@untainted> finalResult);
             res.setContentType("text/html; charset=utf-8");
             res.setHeader("Access-Control-Allow-Origin", "*");
             res.setHeader("Access-Control-Allow-Methods", "POST,GET,PUT,DELETE");
@@ -418,7 +434,7 @@ service uiServiceGovIDLogin on uiGovIDLogin {
             if (result is error) {
                     log:printError("Error sending response", err = result);
             }
-        } else if (requestVariableMap["command"] == "encresponse") {
+        } else if (requestVariableMap ["command"] == "encresponse") {
             var did = requestVariableMap["did"] ?: "";
             var encryptedval = requestVariableMap["encryptedval"] ?: "";
             //var publicKey = requestVariableMap["publicKey"] ?: "";
@@ -442,7 +458,7 @@ service uiServiceGovIDLogin on uiGovIDLogin {
 
                 http:Response res = new;
                 // A util method that can be used to set string payload.
-                res.setPayload(untaint verifiableCredentialsList);
+                res.setPayload(<@untainted> verifiableCredentialsList);
                 res.setContentType("text/html; charset=utf-8");
                 res.setHeader("Access-Control-Allow-Origin", "*");
                 res.setHeader("Access-Control-Allow-Methods", "POST,GET,PUT,DELETE");
@@ -471,7 +487,7 @@ service uiServiceGovIDLogin on uiGovIDLogin {
         var requestVariableMap = check req.getFormParams();
        
        if (requestVariableMap.hasKey("randomKey")) {
-        randomKey = untaint requestVariableMap["randomKey"]  ?: "";
+        randomKey = <@untainted> requestVariableMap["randomKey"]  ?: "";
        }
 
         var result = caller->respond("done");
@@ -481,18 +497,27 @@ service uiServiceGovIDLogin on uiGovIDLogin {
         }
    }
 }
+string ping = "ping";
+byte[] pingData = ping.toBytes();
 
 @http:WebSocketServiceConfig {
     path: "/basic/ws",
     subProtocols: ["xml", "json"],
     idleTimeoutInSeconds: 120
 }
-service basic on new http:WebSocketListener(9095) {
+service basic on new http:Listener(9095) {
 
-    string ping = "ping";
-    byte[] pingData = ping.toByteArray("UTF-8");
+    // string ping = "ping";
+    // //byte[] pingData = ping.toByteArray("UTF-8");
+    // byte[] pingData = ping.toBytes();
 
     resource function onOpen(http:WebSocketCaller caller) {
+        io:println("\nNew client connected");
+        io:println("Connection ID: " + caller.getConnectionId());
+        io:println("Negotiated Sub protocol: " + caller.getNegotiatedSubProtocol().toString());
+        io:println("Is connection open: " + caller.isOpen().toString());
+        io:println("Is connection secured: " + caller.isSecure().toString());
+
         while(true) {
             var err = caller->pushText(pk);
             if (err is error) {
@@ -504,27 +529,39 @@ service basic on new http:WebSocketListener(9095) {
 
     resource function onText(http:WebSocketCaller caller, string text,
                                 boolean finalFrame) {
+        io:println("\ntext message: " + text + " & final fragment: "
+                                                        + finalFrame.toString());
+
         if (text == "ping") {
             io:println("Pinging...");
-            var err = caller->ping(self.pingData);
-            if (err is error) {
-                log:printError("Error sending ping", err = err);
+            var err = caller->ping(pingData);
+            if (err is http:WebSocketError) {
+                log:printError("Error sending ping", <error> err);
             }
         } else if (text == "closeMe") {
-            var err = caller->close(statusCode = 1001,
+            // var err = caller->close(statusCode = 1001,
+            //                 reason = "You asked me to close the connection",
+            //                 timeoutInSecs = 0);
+            error? result = caller->close(statusCode = 1001,
                             reason = "You asked me to close the connection",
-                            timeoutInSecs = 0);
-        } else {
-            chatBuffer = untaint text + "\r\n";
-            var err = caller->pushText(chatBuffer);
-            if (err is error) {
-                log:printError("Error occurred when sending text", err = err);
+                            timeoutInSeconds = 0);
+            if (result is http:WebSocketError) {
+                log:printError("Error occurred when closing connection", <error> result);
             }
+        } else {
+            // chatBuffer = <@untainted> text + "\r\n";
+            // var err = caller->pushText(chatBuffer);
+            // if (err is error) {
+            //     log:printError("Error occurred when sending text", err = err);
+            // }
 
-            io:println("Pinging...");
-            var err2 = caller->ping(self.pingData);
-            if (err2 is error) {
-                log:printError("Error sending ping", err = err);
+            // io:println("Pinging...");
+            // var err2 = caller->ping(self.pingData);
+            // if (err2 is error) {
+            //     log:printError("Error sending ping", err = err);
+            var err = caller->pushText("You said: " + text);
+            if (err is http:WebSocketError) {
+                log:printError("Error occurred when sending text", <error> err);
             }
         }
     }
@@ -534,16 +571,18 @@ service basic on new http:WebSocketListener(9095) {
         io:print("UTF-8 decoded binary message: ");
         io:println(b);
         var err = caller->pushBinary(b);
-        if (err is error) {
-            log:printError("Error occurred when sending binary", err = err);
+        if (err is http:WebSocketError) {
+            log:printError("Error occurred when sending binary", <error>  err);
         }
     }
 
     resource function onPing(http:WebSocketCaller caller, byte[] data) {
         var err = caller->pong(data);
-        if (err is error) {
-            log:printError("Error occurred when closing the connection",
-                            err = err);
+        //if (err is error) {
+        if (err is http:WebSocketError) {
+            // log:printError("Error occurred when closing the connection", err = err);
+            log:printError("Error occurred when closing the connection", <error> err);
+        
         }
     }
 
@@ -553,16 +592,32 @@ service basic on new http:WebSocketListener(9095) {
 
     resource function onIdleTimeout(http:WebSocketCaller caller) {
         io:println("\nReached idle timeout");
+        // io:println("Closing connection " + caller.id);
+        // var err = caller->close(statusCode = 1001, reason =
+        //                             "Connection timeout");
+        // if (err is error) {
+        //     log:printError("Error occured when closing the connection",
+        //                         err = err);
+        // }
+        io:println("Closing connection " + caller.getConnectionId());
+        var err = caller->close(statusCode = 1001, reason =
+                                    "Connection timeout");
+        if (err is http:WebSocketError) {
+            log:printError("Error occurred when closing the connection", <error> err);
+        }
     }
 
     resource function onError(http:WebSocketCaller caller, error err) {
-        log:printError("Error occurred ", err = err);
+        // log:printError("Error occurred ", err = err);
+        log:printError("Error occurred ", <error> err);
     }
 
     resource function onClose(http:WebSocketCaller caller, int statusCode,
                                 string reason) {
-        io:println(string `Client left with {{statusCode}} because
-                    {{reason}}`);
+        // io:println(string `Client left with {{statusCode}} because
+        //             {{reason}}`);
+        io:println(string `Client left with ${statusCode} because
+                    ${reason}`);
     }
 }
 
@@ -577,7 +632,7 @@ public function readFile (string filePath) returns (string) {
         while (readableRecordsChannel.hasNext()) {
             var result = readableRecordsChannel.getNext();
             if (result is string[]) {
-                string item = string.convert(result[0]);
+                string item = string.(result[0]);
                 buffer += item;
             } else {
                  io:println("Error");
@@ -603,11 +658,11 @@ public function getVerifiableCredentials(string didmid) returns (string) {
     string customTimeString = currentTime.format("dd-MM-yyyy");
     string country = "";
     string firstname = "";
-    var selectRet = ssiDB->select(untaint "select country, firstname from ssidb.govid where (did LIKE '"+ untaint didmid +"');", ());
+    var selectRet = ssiDB->select(<@untainted> "select country, firstname from ssidb.govid where (did LIKE '"+ <@untainted> didmid +"');", ());
 
     if (selectRet is table<record {}>) {
-        io:println("\nConvert the table into json");
-        var jsonConversionRet = json.convert(selectRet);
+        io:println("\n the table into json");
+        var jsonConversionRet = json.(selectRet);
         
         if (jsonConversionRet is json) {
             if (jsonConversionRet.length() > 0) {
@@ -622,121 +677,125 @@ public function getVerifiableCredentials(string didmid) returns (string) {
     string finalResult = sendTransactionAndgetHash(country);
 
     string countryCredential = "|||" + didmid + "," + finalResult + ",http://ip6-localhost:9090/api,CountryCredential" + "||| " + "{
-    // set the context, which establishes the special terms we will be using
-    // such as 'issuer' and 'alumniOf'.
-    \"@context\": [
-        \"https://www.w3.org/2018/credentials/v1\",
-        \"https://www.w3.org/2018/credentials/examples/v1\"
-    ],
-    // specify the identifier for the credential
-    \"id\": \"http://localhost:9090/credentials/1\",
-    // the credential types, which declare what data to expect in the credential
-    \"type\": [\"VerifiableCredential\", \"CountryCredential\"],
-    // the entity that issued the credential
-    \"issuer\": \"http://ip6-localhost:9090/api\",
-    // when the credential was issued
-    \"issuanceDate\": \"" + customTimeString + "\",
-    // claims about the subjects of the credential
-    \"credentialSubject\": {
-        // identifier for the only subject of the credential
-        \"id\": \"did:ethr:" + didmid + "\",
-        // assertion about the only subject of the credential
-        \"homeCountry\": {
-        \"id\": \"did:ethr:" + finalResult + "\",
-        \"name\": [{
-            \"value\": \"home country\",
-            \"lang\": \"en\"
-        }, {
-            \"value\": \"" + country + "\",
-            \"lang\": \"en\"
-        }]
-        }
-    },
-    // digital proof that makes the credential tamper-evident
-    // see the NOTE at end of this section for more detail
-    \"proof\": {
-        // the cryptographic signature suite that was used to generate the signature
-        \"type\": \"RsaSignature2018\",
-        // the date the signature was created
-        \"created\": \"2017-06-18T21:19:10Z\",
-        // purpose of this proof
-        \"proofPurpose\": \"assertionMethod\",
-        // the identifier of the public key that can verify the signature
-        \"verificationMethod\": \"https://example.edu/issuers/keys/1\",
-        // the digital signature value
-        \"jws\": \"eyJhbGciOiJSUzI1NiIsImI2NCI6ZmFsc2UsImNyaXQiOlsiYjY0Il19..TCYt5X
-        sITJX1CxPCT8yAV-TVkIEq_PbChOMqsLfRoPsnsgw5WEuts01mq-pQy7UJiN5mgRxD-WUc
-        X16dUEMGlv50aqzpqh4Qktb3rk-BuQy72IFLOqV0G_zS245-kronKb78cPN25DGlcTwLtj
-        PAYuNzVBAh4vGHSrQyHUdBBPM\"
+  // set the context, which establishes the special terms we will be using
+  // such as 'issuer' and 'alumniOf'.
+  \"@context\": [
+    \"https://www.w3.org/2018/credentials/v1\",
+    \"https://www.w3.org/2018/credentials/examples/v1\"
+  ],
+  // specify the identifier for the credential
+  \"id\": \"http://localhost:9090/credentials/1\",
+  // the credential types, which declare what data to expect in the credential
+  \"type\": [\"VerifiableCredential\", \"CountryCredential\"],
+  // the entity that issued the credential
+  \"issuer\": \"http://ip6-localhost:9090/api\",
+  // when the credential was issued
+  \"issuanceDate\": \"" + customTimeString + "\",
+  // claims about the subjects of the credential
+  \"credentialSubject\": {
+    // identifier for the only subject of the credential
+    \"id\": \"did:ethr:" + didmid + "\",
+    // assertion about the only subject of the credential
+    \"homeCountry\": {
+      \"id\": \"did:ethr:" + finalResult + "\",
+      \"name\": [{
+        \"value\": \"home country\",
+        \"lang\": \"en\"
+      }, {
+        \"value\": \"" + country + "\",
+        \"lang\": \"en\"
+      }]
     }
-    }";
+  },
+  // digital proof that makes the credential tamper-evident
+  // see the NOTE at end of this section for more detail
+  \"proof\": {
+    // the cryptographic signature suite that was used to generate the signature
+    \"type\": \"RsaSignature2018\",
+    // the date the signature was created
+    \"created\": \"2017-06-18T21:19:10Z\",
+    // purpose of this proof
+    \"proofPurpose\": \"assertionMethod\",
+    // the identifier of the public key that can verify the signature
+    \"verificationMethod\": \"https://example.edu/issuers/keys/1\",
+    // the digital signature value
+    \"jws\": \"eyJhbGciOiJSUzI1NiIsImI2NCI6ZmFsc2UsImNyaXQiOlsiYjY0Il19..TCYt5X
+      sITJX1CxPCT8yAV-TVkIEq_PbChOMqsLfRoPsnsgw5WEuts01mq-pQy7UJiN5mgRxD-WUc
+      X16dUEMGlv50aqzpqh4Qktb3rk-BuQy72IFLOqV0G_zS245-kronKb78cPN25DGlcTwLtj
+      PAYuNzVBAh4vGHSrQyHUdBBPM\"
+  }
+}";
 
-    return countryCredential;
+return countryCredential;
 }
 
 public function sendTransactionAndgetHash(string data) returns (string) {
-    http:Request request2 = new;
-    request2.setHeader("Content-Type", "application/json");
-    request2.setJsonPayload({"jsonrpc":"2.0", "id":"2000", "method":"personal_unlockAccount", "params": [ethereumAccount,"1234",null]});
+                http:Request request2 = new;
+            request2.setHeader("Content-Type", "application/json");
+            request2.setJsonPayload({"jsonrpc":"2.0", "id":"2000", "method":"personal_unlockAccount", "params": [ethereumAccount,"1234",null]});
 
-    string finalResult2 = "";
-    boolean errorFlag2 = false;
-    var httpResponse2 = ethereumClient -> post("/", request2);
+            string finalResult2 = "";
+            boolean errorFlag2 = false;
+            var httpResponse2 = ethereumClient -> post("/", request2);
 
-    if (httpResponse2 is http:Response) {
-        int statusCode = httpResponse2.statusCode;
-        var jsonResponse = httpResponse2.getJsonPayload();
-        if (jsonResponse is json) {
-            if (jsonResponse["error"] == null) {
-                finalResult2 = jsonResponse.result.toString();
-            } else {
+            if (httpResponse2 is http:Response) {
+                int statusCode = httpResponse2.statusCode;
+                var jsonResponse = httpResponse2.getJsonPayload();
+                if (jsonResponse is json) {
+                    if (jsonResponse["error"] == null) {
+                        finalResult2 = jsonResponse.result.toString();
+                        //finalResult = HexStringToString(inputString);
+                    } else {
+                            error err = error("(wso2/ethereum)EthereumError",
+                            { message: "Error occurred while accessing the JSON payload of the response" });
+                            finalResult2 = jsonResponse["error"].toString();
+                            errorFlag2 = true;
+                    }
+                } else {
                     error err = error("(wso2/ethereum)EthereumError",
                     { message: "Error occurred while accessing the JSON payload of the response" });
-                    finalResult2 = jsonResponse["error"].toString();
+                    finalResult2 = jsonResponse.reason();
                     errorFlag2 = true;
-            }
-        } else {
-            error err = error("(wso2/ethereum)EthereumError",
-            { message: "Error occurred while accessing the JSON payload of the response" });
-            finalResult2 = jsonResponse.reason();
-            errorFlag2 = true;
-        }
-    } else {
-        error err = error("(wso2/ethereum)EthereumError", { message: "Error occurred while invoking the Ethererum API" });
-        errorFlag2 = true;
-    }
-
-    string hexEncodedString = "0x" + utils:hashSHA256(data);
-
-    http:Request request = new;
-    request.setHeader("Content-Type", "application/json");
-    request.setJsonPayload({"jsonrpc":"2.0", "id":"2000", "method":"eth_sendTransaction", "params":[{"from": ethereumAccount, "to":"0x6814412628addef8989ee696a67b0fad5d62735e", "data": hexEncodedString}]});
-
-    string finalResult = "";
-    boolean errorFlag = false;
-    var httpResponse = ethereumClient -> post("/", request);
-    if (httpResponse is http:Response) {
-        int statusCode = httpResponse.statusCode;
-        var jsonResponse = httpResponse.getJsonPayload();
-        if (jsonResponse is json) {
-            if (jsonResponse["error"] == null) {
-                finalResult = jsonResponse.result.toString();
+                }
             } else {
+                error err = error("(wso2/ethereum)EthereumError", { message: "Error occurred while invoking the Ethererum API" });
+                errorFlag2 = true;
+            }
+
+            //byte[] output = crypto:hashSha256(publicKey.toByteArray("UTF-8"));
+            //string hexEncodedString = "0xe1db84093f660c49846c87cf626ade2bc54135f2420d835cfae6ba01d5d903e2";//encoding:encodeHex(output);
+            string hexEncodedString = "0x" + utils:hashSHA256(data);//encoding:encodeHex(output);
+            //io:println("Hex encoded hash with SHA256: " + hexEncodedString);
+            //Next we will write the blockchain record
+            http:Request request = new;
+            request.setHeader("Content-Type", "application/json");
+            request.setJsonPayload({"jsonrpc":"2.0", "id":"2000", "method":"eth_sendTransaction", "params":[{"from": ethereumAccount, "to":"0x6814412628addef8989ee696a67b0fad5d62735e", "data": hexEncodedString}]});
+
+            string finalResult = "";
+            boolean errorFlag = false;
+            var httpResponse = ethereumClient -> post("/", request);
+            if (httpResponse is http:Response) {
+                int statusCode = httpResponse.statusCode;
+                var jsonResponse = httpResponse.getJsonPayload();
+                if (jsonResponse is json) {
+                    if (jsonResponse["error"] == null) {
+                        finalResult = jsonResponse.result.toString();
+                    } else {
+                            error err = error("(wso2/ethereum)EthereumError",
+                            { message: "Error occurred while accessing the JSON payload of the response" });
+                            finalResult = jsonResponse["error"].toString();
+                            errorFlag = true;
+                    }
+                } else {
                     error err = error("(wso2/ethereum)EthereumError",
                     { message: "Error occurred while accessing the JSON payload of the response" });
-                    finalResult = jsonResponse["error"].toString();
+                    finalResult = jsonResponse.reason();
                     errorFlag = true;
+                }
+            } else {
+                error err = error("(wso2/ethereum)EthereumError", { message: "Error occurred while invoking the Ethererum API" });
+                errorFlag = true;
             }
-        } else {
-            error err = error("(wso2/ethereum)EthereumError",
-            { message: "Error occurred while accessing the JSON payload of the response" });
-            finalResult = jsonResponse.reason();
-            errorFlag = true;
-        }
-    } else {
-        error err = error("(wso2/ethereum)EthereumError", { message: "Error occurred while invoking the Ethererum API" });
-        errorFlag = true;
-    }
 
-    return finalResult;
+            return finalResult;
 }
