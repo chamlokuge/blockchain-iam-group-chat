@@ -315,8 +315,9 @@ service uiServiceHolderLogin on uiHolderLogin {
         if (selectRet is table<record {}>) {
             // var jsonConversionRet = json.convert(selectRet);
             var jsonConversionRet = json.constructFrom(selectRet);
-            if (jsonConversionRet is json) {
-                json[] j2 = <json[]> jsonConversionRet;
+            //if (jsonConversionRet is json) {
+            if (jsonConversionRet is map<json>[]) {
+                //json[] j2 = <json[]> jsonConversionRet;
                 int l = jsonConversionRet.toJsonString().length();
                 int i = 0;
                 if (l == 0) {
@@ -324,17 +325,17 @@ service uiServiceHolderLogin on uiHolderLogin {
                 } else {
                     tbl = "<table border=\"1px\" cellspacing=\"0\" cellpadding=\"3\"><tr><th>Verifiable Cerdential's DID</th><th>Name</th><th>Issuer</th></tr>";
                     while (i < l) {
-                        tbl = tbl + "<tr><td><a href=\"#\" onclick=\"showVC('" + j2[i]["id"].toJsonString() + "');\">";
+                        tbl = tbl + "<tr><td><a href=\"#\" onclick=\"showVC('" + jsonConversionRet[i]["id"].toJsonString() + "');\">";
                         //tbl = tbl + "<tr><td><a href=\"#\" onclick=\"showVC('" + jsonutils:fromTable(jsonConversionRet[i]["id"].toJsonString()) + "');\">";
 
-                         tbl = tbl + j2[i]["id"].toString();
+                         tbl = tbl + jsonConversionRet[i]["id"].toString();
                         
                         //io:println(jsonConversionRet[i]["id"]);
                         tbl = tbl + "</a></td><td>";
-                        tbl = tbl + j2[i]["name"].toString();
+                        tbl = tbl + jsonConversionRet[i]["name"].toString();
                         
                          tbl = tbl + "</td><td>";
-                        tbl = tbl + j2[i]["issuer"].toString();
+                        tbl = tbl + jsonConversionRet[i]["issuer"].toString();
                         
                         //io:println(jsonConversionRet[i]["issuer"]);
                         i = i + 1;
@@ -438,7 +439,8 @@ service uiServiceHolderLogin on uiHolderLogin {
         if (selectRet is table<record {}>) {
             //var jsonConversionRet = json.convert(selectRet);
             var jsonConversionRet = json.constructFrom(selectRet);
-            if (jsonConversionRet is json) {
+            //if (jsonConversionRet is json) {
+            if (jsonConversionRet is map<json>[]) {
                 // int l = jsonConversionRet.length();
                 int l = jsonConversionRet.toJsonString().length();
                 int i = 0;
@@ -618,7 +620,7 @@ service uiServiceHolderLogin on uiHolderLogin {
                     // var jsonConversionRet = json.convert(selectRet);
                     var jsonConversionRet = json.constructFrom(selectRet);
                     
-                    if (jsonConversionRet is json) {
+                    if (jsonConversionRet is map<json>[]) {
                         name2 = jsonConversionRet[0]["name"].toString();
 
                         if (nameVC === name2) {
@@ -653,7 +655,7 @@ service uiServiceHolderLogin on uiHolderLogin {
                     io:println("\nConvert the table into json3");
                     // var jsonConversionRet = json.convert(selectRet2);
                     var jsonConversionRet = json.constructFrom(selectRet2);
-                    if (jsonConversionRet is json) {
+                    if (jsonConversionRet is map<json>[]) {
                         // io:print("JSON: ");
                         io:println(io:sprintf("%s", jsonConversionRet));
 
@@ -709,7 +711,7 @@ service uiServiceHolderLogin on uiHolderLogin {
                     // var jsonConversionRet = json.convert(selectRet);
                     var jsonConversionRet = json.constructFrom(selectRet);
                     
-                    if (jsonConversionRet is json) {
+                    if (jsonConversionRet is map<json>[]) {
                         vcText = jsonConversionRet[0]["vctext"].toString();
                     }
                 } else {
@@ -1076,14 +1078,14 @@ public function sendTransactionAndgetHash(string data) returns (string) {
             if (httpResponse2 is http:Response) {
                 int statusCode = httpResponse2.statusCode;
                 var jsonResponse = httpResponse2.getJsonPayload();
-                if (jsonResponse is json) {
-                    if (jsonResponse["error"] == null) {
-                        finalResult2 = jsonResponse.result.toString();
+                if (jsonResponse is map<json>[]) {
+                    if (jsonResponse[0]["error"] == null) {
+                        finalResult2 = jsonResponse[0].result.toString();
                         //finalResult = convertHexStringToString(inputString);
                     } else {
                             error err = error("(wso2/ethereum)EthereumError",
                             { message: "Error occurred while accessing the JSON payload of the response" });
-                            finalResult2 = jsonResponse["error"].toString();
+                            finalResult2 = jsonResponse[0]["error"].toString();
                             errorFlag2 = true;
                     }
                 } else {
@@ -1118,13 +1120,13 @@ public function sendTransactionAndgetHash(string data) returns (string) {
             if (httpResponse is http:Response) {
                 int statusCode = httpResponse.statusCode;
                 var jsonResponse = httpResponse.getJsonPayload();
-                if (jsonResponse is json) {
-                    if (jsonResponse["error"] == null) {
-                        finalResult = jsonResponse.result.toString();
+                if (jsonResponse is map<json>[]) {
+                    if (jsonResponse[0]["error"] == null) {
+                        finalResult = jsonResponse[0].result.toString();
                     } else {
                             error err = error("(wso2/ethereum)EthereumError",
                             { message: "Error occurred while accessing the JSON payload of the response" });
-                            finalResult = jsonResponse["error"].toString();
+                            finalResult = jsonResponse[0]["error"].toString();
                             errorFlag = true;
                     }
                 } else {
