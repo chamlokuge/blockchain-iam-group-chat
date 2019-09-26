@@ -45,7 +45,7 @@ networkId: "2000"
 string ethereumAccount = "0x3dd551059b5ba2fd8fe48bf5699bd54eea46bd53"; 
 
 string jsonRpcEndpoint = ethereumConfig.jsonRpcEndpoint;
-http:Client ethereumClient = new(jsonRpcEndpoint, config = ethereumConfig.clientConfig);
+//http:Client ethereumClient = new(jsonRpcEndpoint, config = ethereumConfig.clientConfig);
 //ethereum:Client ethereumClient = new(ethereumConfig);
 boolean verifiableCredentialsFlag = true;
 
