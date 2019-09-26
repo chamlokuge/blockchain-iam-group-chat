@@ -40,10 +40,13 @@ jsonRpcVersion: "2.0",
 networkId: "2000"
 };
 
-string ethereumAccount = "0x3dd551059b5ba2fd8fe48bf5699bd54eea46bd53";
+//ethereum:Client ethereumClient = new(ethereumConfig);
+
+string ethereumAccount = "0x3dd551059b5ba2fd8fe48bf5699bd54eea46bd53"; 
 
 string jsonRpcEndpoint = ethereumConfig.jsonRpcEndpoint;
 http:Client ethereumClient = new(jsonRpcEndpoint, config = ethereumConfig.clientConfig);
+//ethereum:Client ethereumClient = new(ethereumConfig);
 boolean verifiableCredentialsFlag = true;
 
 @http:ServiceConfig { basePath:"/" }
@@ -342,7 +345,7 @@ service uiService on uiEP {
         path:"/home"
    }
    resource function sendHomePage(http:Caller caller, http:Request req, string name, string message) {
-        map<string> requestVariableMap = req. getQueryParams();
+        map<string> requestVariableMap = req.getQueryParams();
         io:ReadableByteChannel | io:Error readableByteChannel = io:openReadableFile("web/home.html");
         if(readableByteChannel is io:ReadableByteChannel){
         var readableCharChannel = new io:ReadableCharacterChannel(readableByteChannel, "UTF-8");
@@ -362,10 +365,12 @@ service uiService on uiEP {
         }
 
        http:Response res = new;
-       buffer = buffer.replace("uname", requestVariableMap["did"] ?: "abc");
+    //    buffer = buffer.replace("uname", requestVariableMap["did"] ?: "abc");
+            buffer = stringutils:replace(buffer,"uname", requestVariableMap["did"] ?: "abc");
 
        if (caller.localAddress.host != "") {
-           buffer= buffer.replace("localhost", caller.localAddress.host);
+        //    buffer= buffer.replace("localhost", caller.localAddress.host);
+             buffer= stringutils:replace(buffer,"localhost", caller.localAddress.host);
        }
 
        res.setPayload(<@untainted> buffer);
@@ -389,6 +394,7 @@ service uiService on uiEP {
 service chainPage on blockChainInterfaceEP {
 
 public function constructRequest (string jsonRPCVersion, int networkId, string method, json params) returns http:Request {
+    //resource function constructRequest (string jsonRPCVersion, int networkId, string method, json params) returns http:Request {
     http:Request request = new;
     request.setHeader("Content-Type", "application/json");
     request.setJsonPayload({"jsonrpc":jsonRPCVersion, "id":networkId, "method":method, "params":params});
@@ -396,6 +402,7 @@ public function constructRequest (string jsonRPCVersion, int networkId, string m
 }
 
 public function resultToString(json jsonPayload) returns string {
+    //resource function resultToString(json jsonPayload) returns string {
     string result = jsonPayload["result"] != null ? jsonPayload["result"].toString() : "";
     return result;
 }
@@ -511,6 +518,8 @@ public function setResponseError(json jsonResponse) returns error {
     if (!errorFlag) {
         string hashKey = <@untainted> finalResult;
         io:ReadableCharacterChannel sourceChannel = new (io:openReadableFile("key-db/" + <@untainted> uname + "/" + hashKey), "UTF-8");
+        //io:ReadableCharacterChannel | io:Error  sourceChannel = new (io:openReadableFile("key-db/" + <@untainted> uname + "/" + hashKey), "UTF-8");
+        //if(sourceChannel is io:ReadableCharacterChannel){
         var readableRecordsChannel = new io:ReadableTextRecordChannel(sourceChannel, fs = ",", rs = "\n");
         while (readableRecordsChannel.hasNext()) {
             var result = readableRecordsChannel.getNext();
