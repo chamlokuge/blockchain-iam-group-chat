@@ -1,7 +1,0 @@
-[project]
-org-name = "miyurud"
-version = "0.0.1"
-
-[dependencies]
-"wso2/ethereum" = "1.0.0"
-
