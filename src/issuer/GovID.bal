@@ -150,8 +150,7 @@ service uiServiceGovIDLogin on uiGovIDLogin {
         }
     }
    resource function displayLoginPage2(http:Caller caller, http:Request req, string name, string message) returns error? {
-       var requestVariableMap = req.getQueryParams();
-       string username = requestVariableMap["username"]  ?: "";
+       string username = req.getQueryParamValue("username") ?: "";
 
        if ((!(username.equalsIgnoreCase(""))) && authenticatedMap[username] == true) {
             string buffer = readFile("web/govid-request.html");

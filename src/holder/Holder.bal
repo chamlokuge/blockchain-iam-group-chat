@@ -166,8 +166,10 @@ service uiServiceHolderLogin on uiHolderLogin {
         }
     }
    resource function displayLoginPage2(http:Caller caller, http:Request req, string name, string message) returns error? {
-       var requestVariableMap = req.getQueryParams();
-         string username = requestVariableMap["username"]  ?: "";
+    //    map<string[]> requestVariableMap = req.getQueryParams();
+    //      string username = requestVariableMap["username"]  ?: "";
+
+        string username = req.getQueryParamValue("username") ?: "";
         
         // map requestVariableMap = request.getQueryParams();
         // if(requestVariableMap.hasKey("username")){
@@ -304,9 +306,8 @@ service uiServiceHolderLogin on uiHolderLogin {
         }
     }
    resource function displayLoginPage3(http:Caller caller, http:Request req, string name, string message) returns error? {
-        var requestVariableMap = req.getQueryParams();
-        string username = requestVariableMap["username"]  ?: "";
-        string did = requestVariableMap["did"]  ?: "";
+        string username = req.getQueryParamValue("username") ?: "";
+        string did = req.getQueryParamValue("did") ?: "";
 
         var selectRet = ssiDB->select(<@untainted> "select id, issuer, name from ssidb.vclist where (did LIKE '"+ <@untainted> did +"');", ());
         string tbl = "<table><tr><td>No Verifiable credentials associated with your account yet.";
@@ -315,6 +316,7 @@ service uiServiceHolderLogin on uiHolderLogin {
             // var jsonConversionRet = json.convert(selectRet);
             var jsonConversionRet = json.constructFrom(selectRet);
             if (jsonConversionRet is json) {
+                json[] j2 = <json[]> jsonConversionRet;
                 int l = jsonConversionRet.toJsonString().length();
                 int i = 0;
                 if (l == 0) {
@@ -322,17 +324,17 @@ service uiServiceHolderLogin on uiHolderLogin {
                 } else {
                     tbl = "<table border=\"1px\" cellspacing=\"0\" cellpadding=\"3\"><tr><th>Verifiable Cerdential's DID</th><th>Name</th><th>Issuer</th></tr>";
                     while (i < l) {
-                        tbl = tbl + "<tr><td><a href=\"#\" onclick=\"showVC('" + jsonConversionRet[i]["id"].toJsonString() + "');\">";
+                        tbl = tbl + "<tr><td><a href=\"#\" onclick=\"showVC('" + j2[i]["id"].toJsonString() + "');\">";
                         //tbl = tbl + "<tr><td><a href=\"#\" onclick=\"showVC('" + jsonutils:fromTable(jsonConversionRet[i]["id"].toJsonString()) + "');\">";
 
-                         tbl = tbl + jsonConversionRet[i]["id"].toString();
+                         tbl = tbl + j2[i]["id"].toString();
                         
                         //io:println(jsonConversionRet[i]["id"]);
                         tbl = tbl + "</a></td><td>";
-                        tbl = tbl + jsonConversionRet[i]["name"].toString();
+                        tbl = tbl + j2[i]["name"].toString();
                         
                          tbl = tbl + "</td><td>";
-                        tbl = tbl + jsonConversionRet[i]["issuer"].toString();
+                        tbl = tbl + j2[i]["issuer"].toString();
                         
                         //io:println(jsonConversionRet[i]["issuer"]);
                         i = i + 1;
@@ -835,8 +837,7 @@ service uiServiceHolderLogin on uiHolderLogin {
         }
     }
    resource function logout(http:Caller caller, http:Request req, string name, string message) {
-       var requestVariableMap = req.getQueryParams();
-       string username = requestVariableMap["username"]  ?: "";
+        string username = req.getQueryParamValue("username") ?: "";
 
     //    if ((!(username.equalsIgnoreCase(""))) && authenticatedMap[username] == true) {
         if ((!(stringutils:equalsIgnoreCase(username,""))) && authenticatedMap[username] == true) {
@@ -1087,10 +1088,11 @@ public function sendTransactionAndgetHash(string data) returns (string) {
                     }
                 } else {
                     error err = error("(wso2/ethereum)EthereumError",
-                    { message: "Error occurred while accessing the JSON payload of the response" });
-                    finalResult2 = jsonResponse.reason();
-                    errorFlag2 = true;
-                }
+                    { 
+                        message: "Error occurred while accessing the JSON payload of the response" });
+                        finalResult2 = jsonResponse.reason();
+                        errorFlag2 = true;
+                    }
             } else {
                 error err = error("(wso2/ethereum)EthereumError", { message: "Error occurred while invoking the Ethererum API" });
                 errorFlag2 = true;
