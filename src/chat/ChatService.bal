@@ -103,7 +103,7 @@ service uiService on uiEP {
     }
    resource function logout(http:Caller caller, http:Request req, string name, string message) {
     //    map<string> requestVariableMap = req. getQueryParams();
-        string did = req.getQueryParamValue["did"] ?: "";
+        string did = req.getQueryParamValue("did") ?: "";
        //var did = requestVariableMap["did"] ?: "";
        authenticatedMap[did] = false;
        string buffer = "http://localhost:9097";
@@ -188,12 +188,13 @@ service uiService on uiEP {
             io:println("++++++++++++++++++++++++++++++>" + did);
             // did = did.replace("%2C", ",");
             did = stringutils:replace(did,"%2C", ",");
-            int index2 = did.indexOf("\"id\": \"did:ethr:") + 16;
+            int index2 = did.indexOf("\"id\": \"did:ethr:") ?: 0 + 16;
             string didmid = did.substring(index2, index2+64);
 
-            index2 = did.indexOf("-----BEGIN PUBLIC KEY-----")  + 26;
+            index2 = did.indexOf("-----BEGIN PUBLIC KEY-----") ?: 0 + 26;
 
-            int index3 = did.indexOf("-----END PUBLIC KEY-----");
+            // int index3 = did.indexOf("-----END PUBLIC KEY-----");
+            int index3 = did.indexOf("-----END PUBLIC KEY-----") ?: 0 ;
             var publicKey = did.substring(index2, index3);
 
             didmid = "0x" + didmid;
@@ -210,15 +211,16 @@ service uiService on uiEP {
                 var jsonResponse = httpResponse.getJsonPayload();
                 if (jsonResponse is map<json>[]) {
                     // if (jsonResponse is json) {
-                    if (jsonResponse["error"] == null) {
+                    // if (jsonResponse["error"] == null) {
+                        if (jsonResponse[0]["error"] == null) {
                         // finalResult = jsonResponse.result.toString();
-                        finalResult = jsonResponse.result.toJsonString();
+                        finalResult = jsonResponse[0].result.toString();
                         // pkHash = jsonResponse.result["input"].toString();
-                        pkHash = jsonResponse.result["input"].toJsonString();
+                        pkHash = jsonResponse[0].result["input"].toString();
                     } else {
                             error err = error("(wso2/ethereum)EthereumError",
                             { message: "Error occurred while accessing the JSON payload of the response" });
-                            finalResult = jsonResponse["error"].toString();
+                            finalResult = jsonResponse[0]["error"].toString();
                             errorFlag = true;
                     }
                 } else {
@@ -265,13 +267,14 @@ service uiService on uiEP {
             did = stringutils:replace(did,"%2C", ",");
             //did = utils:binaryStringToString(did);
             // int index2 = did.indexOf("\"id\": \"did:ethr:") + 16;
-            int? index2 = did.indexOf("\"id\": \"did:ethr:") + 16;
-            if(index2 is int){
+            int index2 = did.indexOf("\"id\": \"did:ethr:") ?: 0 + 16;
+            //if(index2 is int){
             string didmid = did.substring(index2, index2+64);
 
-            index2 = did.indexOf("-----BEGIN PUBLIC KEY-----")  + 26;
-
-            int index3 = did.indexOf("-----END PUBLIC KEY-----");
+            // index2 = did.indexOf("-----BEGIN PUBLIC KEY-----")  + 26;
+            index2 = did.indexOf("-----BEGIN PUBLIC KEY-----") ?: 0  + 26;
+            // int index3 = did.indexOf("-----END PUBLIC KEY-----");
+            int index3 = did.indexOf("-----END PUBLIC KEY-----") ?: 0 ;
             var publicKey = did.substring(index2, index3);
             var didmidOrg = didmid;
             didmid = "0x" + didmid;
@@ -304,7 +307,7 @@ service uiService on uiEP {
                 }
             } else {
                 io:println("Challenge response authentication failed.");
-            }}
+            } //}
         } else if (requestVariableMap["command"] == "vcsubmit") {
             var did = requestVariableMap["did"] ?: "";
             //var publicKey = requestVariableMap["publicKey"] ?: "";
@@ -313,13 +316,15 @@ service uiService on uiEP {
             var vc = requestVariableMap["vc"] ?: "";
             //var publicKey = requestVariableMap["publicKey"] ?: "";
             io:println("------++++------>>>>>>>>>" + vc);
-            int index2 = vc.indexOf("\"homeCountry\": {") + 41;
+            // int index2 = vc.indexOf("\"homeCountry\": {") + 41;
+            int index2 = vc.indexOf("\"homeCountry\": {") ?: 0 + 41;
             string didmid = vc.substring(index2, index2+64);
             io:println("==?>" + didmid);
             string hash = readHashFromBloackchain("0x"+didmid);
             io:println("==+>" + hash);
 
-            index2 = hash.indexOf("\"input\":\"") + 9;
+            // index2 = hash.indexOf("\"input\":\"") + 9;
+            index2 = hash.indexOf("\"input\":\"") ?: 0 + 9;
             hash = hash.substring(index2, index2+66);
             io:println("==+++>" + hash);
             string hexEncodedString = "0x" + utils:hashSHA256("USA");
@@ -351,7 +356,7 @@ service uiService on uiEP {
         path:"/home"
    }
    resource function sendHomePage(http:Caller caller, http:Request req, string name, string message) {
-        map<string> requestVariableMap = req.getQueryParams();
+        //map<string> requestVariableMap = req.getQueryParams();
         io:ReadableByteChannel | io:Error readableByteChannel = io:openReadableFile("web/home.html");
         if(readableByteChannel is io:ReadableByteChannel){
         var readableCharChannel = new io:ReadableCharacterChannel(readableByteChannel, "UTF-8");
@@ -372,7 +377,7 @@ service uiService on uiEP {
 
        http:Response res = new;
     //    buffer = buffer.replace("uname", requestVariableMap["did"] ?: "abc");
-            buffer = stringutils:replace(buffer,"uname", requestVariableMap["did"] ?: "abc");
+            buffer = stringutils:replace(buffer,"uname", req.getQueryParamValue("did") ?: "abc");
 
        if (caller.localAddress.host != "") {
         //    buffer= buffer.replace("localhost", caller.localAddress.host);
@@ -399,8 +404,8 @@ service uiService on uiEP {
 }
 service chainPage on blockChainInterfaceEP {
 
-public function constructRequest (string jsonRPCVersion, int networkId, string method, json params) returns http:Request {
-    //resource function constructRequest (string jsonRPCVersion, int networkId, string method, json params) returns http:Request {
+//public function constructRequest (string jsonRPCVersion, int networkId, string method, json params) returns http:Request {
+    resource function constructRequest (string jsonRPCVersion, int networkId, string method, json params) returns http:Request {
     http:Request request = new;
     request.setHeader("Content-Type", "application/json");
     request.setJsonPayload({"jsonrpc":jsonRPCVersion, "id":networkId, "method":method, "params":params});
@@ -410,7 +415,7 @@ public function constructRequest (string jsonRPCVersion, int networkId, string m
 public function resultToString(json jsonPayload) returns string {
     //resource function resultToString(json jsonPayload) returns string {
     // string result = jsonPayload["result"] != null ? jsonPayload["result"].toString() : "";
-    string result = jsonPayload["result"] != null ? jsonPayload["result"].toJsonString() : "";
+    string result = jsonPayload["result"] != null ? jsonPayload["result"].toString() : "";
     return result;
 }
 
@@ -458,9 +463,10 @@ public function setResponseError(json jsonResponse) returns error {
     // map<string> requestVariableMap = req. getQueryParams();
     // var logoutFlag = requestVariableMap["logout"]  ?: "false";
     
-    string logoutFlag = req.getQueryParamValue["logout"]  ?: "false";
+    string logoutFlag = req.getQueryParamValue("logout")  ?: "false";
     boolean flg = boolean.convert(logoutFlag);
-    string uname = requestVariableMap["username"]  ?: "";
+    // string uname = requestVariableMap["username"]  ?: "";
+    string uname = req.getQueryParamValue("username")  ?: "";
     
     string hostname = "localhost";
 
@@ -505,18 +511,20 @@ public function setResponseError(json jsonResponse) returns error {
         var jsonResponse = httpResponse.getJsonPayload();
         // if (jsonResponse is json) {
         if (jsonResponse is map<json>[]) {
-            if (jsonResponse["error"] == null) {
-                string inputString = jsonResponse.result.toString();
+            if (jsonResponse[0]["error"] == null) {
+                string inputString = jsonResponse[0].result.toString();
                 finalResult = convertHexStringToString(inputString);
             } else {
                     error err = error("(wso2/ethereum)EthereumError",
                     { message: "Error occurred while accessing the JSON payload of the response" });
-                    finalResult = jsonResponse["error"].toString();
+                    // finalResult = jsonResponse["error"].toString();
+                    finalResult = jsonResponse[0]["error"].toString();
                     errorFlag = true;
             }
         } else {
             error err = error("(wso2/ethereum)EthereumError",
             { message: "Error occurred while accessing the JSON payload of the response" });
+            // finalResult = jsonResponse.reason();
             finalResult = jsonResponse.reason();
             errorFlag = true;
         }
@@ -527,9 +535,9 @@ public function setResponseError(json jsonResponse) returns error {
 
     if (!errorFlag) {
         string hashKey = <@untainted> finalResult;
-        io:ReadableCharacterChannel sourceChannel = new (io:openReadableFile("key-db/" + <@untainted> uname + "/" + hashKey), "UTF-8");
-        //io:ReadableCharacterChannel | io:Error  sourceChannel = new (io:openReadableFile("key-db/" + <@untainted> uname + "/" + hashKey), "UTF-8");
-        //if(sourceChannel is io:ReadableCharacterChannel){
+        //io:ReadableCharacterChannel sourceChannel = new (io:openReadableFile("key-db/" + <@untainted> uname + "/" + hashKey), "UTF-8");
+        io:ReadableCharacterChannel | io:Error  sourceChannel = new (io:openReadableFile("key-db/" + <@untainted> uname + "/" + hashKey), "UTF-8");
+        if(sourceChannel is io:ReadableCharacterChannel){
         var readableRecordsChannel = new io:ReadableTextRecordChannel(sourceChannel, fs = ",", rs = "\n");
         while (readableRecordsChannel.hasNext()) {
             var result = readableRecordsChannel.getNext();
@@ -540,7 +548,7 @@ public function setResponseError(json jsonResponse) returns error {
             } else {
                 //return result; // An IO error occurred when reading the records.
             }
-        }
+        }}
     } else {
         io:println("An error has ocurred.");
     }
@@ -835,13 +843,13 @@ public function readHashFromBloackchain(string didmid) returns (string) {
                 var jsonResponse = httpResponse.getJsonPayload();
                 // if (jsonResponse is json) {
                     if (jsonResponse is map<json>[]) {
-                    if (jsonResponse["error"] == null) {
-                        finalResult = jsonResponse.result.toString();
-                        pkHash = jsonResponse.result["input"].toString();
+                    if (jsonResponse[0]["error"] == null) {
+                        finalResult = jsonResponse[0].result.toString();
+                        pkHash = jsonResponse[0].result["input"].toString();
                     } else {
                             error err = error("(wso2/ethereum)EthereumError",
                             { message: "Error occurred while accessing the JSON payload of the response" });
-                            finalResult = jsonResponse["error"].toString();
+                            finalResult = jsonResponse[0]["error"].toString();
                             errorFlag = true;
                     }
                 } else {
