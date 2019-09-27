@@ -102,8 +102,9 @@ service uiService on uiEP {
         }
     }
    resource function logout(http:Caller caller, http:Request req, string name, string message) {
-       map<string> requestVariableMap = req. getQueryParams();
-       var did = requestVariableMap["did"] ?: "";
+    //    map<string> requestVariableMap = req. getQueryParams();
+        string did = req.getQueryParamValue["did"] ?: "";
+       //var did = requestVariableMap["did"] ?: "";
        authenticatedMap[did] = false;
        string buffer = "http://localhost:9097";
        
@@ -207,10 +208,13 @@ service uiService on uiEP {
             if (httpResponse is http:Response) {
                 int statusCode = httpResponse.statusCode;
                 var jsonResponse = httpResponse.getJsonPayload();
-                if (jsonResponse is json) {
+                if (jsonResponse is map<json>[]) {
+                    // if (jsonResponse is json) {
                     if (jsonResponse["error"] == null) {
-                        finalResult = jsonResponse.result.toString();
-                        pkHash = jsonResponse.result["input"].toString();
+                        // finalResult = jsonResponse.result.toString();
+                        finalResult = jsonResponse.result.toJsonString();
+                        // pkHash = jsonResponse.result["input"].toString();
+                        pkHash = jsonResponse.result["input"].toJsonString();
                     } else {
                             error err = error("(wso2/ethereum)EthereumError",
                             { message: "Error occurred while accessing the JSON payload of the response" });
@@ -260,7 +264,9 @@ service uiService on uiEP {
             // did = did.replace("%2C", ",");
             did = stringutils:replace(did,"%2C", ",");
             //did = utils:binaryStringToString(did);
-            int index2 = did.indexOf("\"id\": \"did:ethr:") + 16;
+            // int index2 = did.indexOf("\"id\": \"did:ethr:") + 16;
+            int? index2 = did.indexOf("\"id\": \"did:ethr:") + 16;
+            if(index2 is int){
             string didmid = did.substring(index2, index2+64);
 
             index2 = did.indexOf("-----BEGIN PUBLIC KEY-----")  + 26;
@@ -298,7 +304,7 @@ service uiService on uiEP {
                 }
             } else {
                 io:println("Challenge response authentication failed.");
-            }
+            }}
         } else if (requestVariableMap["command"] == "vcsubmit") {
             var did = requestVariableMap["did"] ?: "";
             //var publicKey = requestVariableMap["publicKey"] ?: "";
@@ -403,7 +409,8 @@ public function constructRequest (string jsonRPCVersion, int networkId, string m
 
 public function resultToString(json jsonPayload) returns string {
     //resource function resultToString(json jsonPayload) returns string {
-    string result = jsonPayload["result"] != null ? jsonPayload["result"].toString() : "";
+    // string result = jsonPayload["result"] != null ? jsonPayload["result"].toString() : "";
+    string result = jsonPayload["result"] != null ? jsonPayload["result"].toJsonString() : "";
     return result;
 }
 
@@ -448,8 +455,10 @@ public function setResponseError(json jsonResponse) returns error {
    resource function sayHello(http:Caller caller, http:Request req, string name, string message) {
     string resultBuffer = "";
 
-    map<string> requestVariableMap = req. getQueryParams();
-    var logoutFlag = requestVariableMap["logout"]  ?: "false";
+    // map<string> requestVariableMap = req. getQueryParams();
+    // var logoutFlag = requestVariableMap["logout"]  ?: "false";
+    
+    string logoutFlag = req.getQueryParamValue["logout"]  ?: "false";
     boolean flg = boolean.convert(logoutFlag);
     string uname = requestVariableMap["username"]  ?: "";
     
@@ -494,7 +503,8 @@ public function setResponseError(json jsonResponse) returns error {
     if (httpResponse is http:Response) {
         int statusCode = httpResponse.statusCode;
         var jsonResponse = httpResponse.getJsonPayload();
-        if (jsonResponse is json) {
+        // if (jsonResponse is json) {
+        if (jsonResponse is map<json>[]) {
             if (jsonResponse["error"] == null) {
                 string inputString = jsonResponse.result.toString();
                 finalResult = convertHexStringToString(inputString);
@@ -776,13 +786,15 @@ service basic on new http:Listener(9098) {
 
 
 public function convertHexStringToString(string inputString) returns (string) {
-    int len = inputString.length();
+    // int len = inputString.length();
+    int len = inputString.toString().length();
     int counter = 0;
     string buffer = "";
     while (counter < len) {
         string s3 = inputString.substring(counter, counter+2);
 
-        if (s3.equalsIgnoreCase("0x")) {
+        // if (s3.equalsIgnoreCase("0x")) {
+            if (stringutils:equalsIgnoreCase(s3,"0x")) {
             counter += 2;
             continue;
         }
@@ -821,7 +833,8 @@ public function readHashFromBloackchain(string didmid) returns (string) {
             if (httpResponse is http:Response) {
                 int statusCode = httpResponse.statusCode;
                 var jsonResponse = httpResponse.getJsonPayload();
-                if (jsonResponse is json) {
+                // if (jsonResponse is json) {
+                    if (jsonResponse is map<json>[]) {
                     if (jsonResponse["error"] == null) {
                         finalResult = jsonResponse.result.toString();
                         pkHash = jsonResponse.result["input"].toString();
