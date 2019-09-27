@@ -31,7 +31,7 @@ import wso2/ethereum;
 import wso2/utils;
 import ballerina/stringutils;
 import ballerina/file;
-
+import ballerina/grpc;
 
 
 listener http:Listener uiHolderLogin = new(9091);
@@ -68,6 +68,7 @@ ethereum:Client ethereumClient = new(ethereumConfig);
 //         password: "test",
 //         dbOptions: { useSSL: false }
 //     });
+
 jdbc:Client ssiDB = new({
         url: "jdbc:mysql://192.168.32.1:3306/ssidb",
         username: "test",
@@ -1081,24 +1082,32 @@ public function sendTransactionAndgetHash(string data) returns (string) {
                 if (jsonResponse is map<json>[]) {
                     if (jsonResponse[0]["error"] == null) {
                         finalResult2 = jsonResponse[0].result.toString();
+                        //finalResult2 = jsonResponse[0].result.toJsonString();
                         //finalResult = convertHexStringToString(inputString);
                     } else {
                             error err = error("(wso2/ethereum)EthereumError",
                             { message: "Error occurred while accessing the JSON payload of the response" });
                             finalResult2 = jsonResponse[0]["error"].toString();
+                            //finalResult2 = jsonResponse[0]["error"].toJsonString();
                             errorFlag2 = true;
                     }
                 } else {
+                    // if(error is grpc:Error){
                     error err = error("(wso2/ethereum)EthereumError",
+                    
                     { 
                         message: "Error occurred while accessing the JSON payload of the response" });
                         finalResult2 = jsonResponse.reason();
                         errorFlag2 = true;
                     }
+            
             } else {
+                
                 error err = error("(wso2/ethereum)EthereumError", { message: "Error occurred while invoking the Ethererum API" });
+                //error err = grpc:Error("(wso2/ethereum)EthereumError", { message: "Error occurred while invoking the Ethererum API" });
                 errorFlag2 = true;
             }
+            
 
             //byte[] output = crypto:hashSha256(publicKey.toByteArray("UTF-8"));
             //string hexEncodedString = "0xe1db84093f660c49846c87cf626ade2bc54135f2420d835cfae6ba01d5d903e2";//encoding:encodeHex(output);
