@@ -691,11 +691,13 @@ public function readFile(string filePath) returns string {
     return buffer;
 }
 
-public function generateRandomKey(int keyLen) returns (string){
+public function generateRandomKey(int keyLen) returns (string){ 
     string buffer = "";
     int counter = 0;
     while (counter < keyLen) {
-        buffer += utils:decToChar(65 + (math:randomInRange(0, 26) ?: 0));
+        int | error randomInRangeValue = math:randomInRange(0,26);
+        buffer += utils:decToChar(65 + (randomInRangeValue) ?: 0);
+        // buffer += utils:decToChar(65 + (math:randomInRange(0, 26) ?: 0));
         counter += 1;
     }
 
