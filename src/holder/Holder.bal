@@ -590,8 +590,16 @@ service uiServiceHolderLogin on uiHolderLogin {
                 io:println(templateDID);
 
                 string path = holderRepo + "/did.json";
-                var result2 = writeFile(path, templateDID);
 
+                io:WritableByteChannel wbc = check io:openWritableFile(path);
+
+                io:WritableCharacterChannel wch = new(wbc, "UTF8");
+                var wResult = wch.writeJson(templateDID);
+                closeWc(wch);
+
+                if (wResult is error) {
+                    log:printError("Error occurred while writing json: ", err = wResult);
+                }
 
                 http:Response res = new;
                 res.setPayload(<@untainted> templateDID);
@@ -992,6 +1000,13 @@ service basic on new http:Listener(9093) {
     }
 }
 
+function closeWc(io:WritableCharacterChannel wc) {
+    var result = wc.close();
+    if (result is error) {
+        log:printError("Error occurred while closing character stream",
+                        err = result);
+    }
+}
 
 
 // public function readFile (string filePath) returns (string) {
@@ -1044,27 +1059,33 @@ public function readFile(string filePath) returns string {
     return buffer;
 }
 
-public function writeFile(string filePath, string content) returns error? {
-//public function writeFile(io:ReadableCharacterChannel sc, io:WritableCharacterChannel dc) returns error?{
+// public function writeFile(string filePath, string content) returns error? {
+// //public function writeFile(io:ReadableCharacterChannel sc, io:WritableCharacterChannel dc) returns error?{
 
-    //io:WritableCharacterChannel destinationChannel = new(io:openWritableFile(holderRepo + "/did.json"), "UTF-8");
-    io:WritableCharacterChannel | io:Error destinationChannel = new io:openWritableFile((holderRepo + "/did.json"), "UTF-8");
+//     //io:WritableCharacterChannel destinationChannel = new(io:openWritableFile(holderRepo + "/did.json"), "UTF-8");
+//     io:WritableCharacterChannel | io:Error destinationChannel = new io:openWritableFile((holderRepo + "/did.json"), "UTF-8");
 
-    if(destinationChannel is io:WritableCharacterChannel){
-    // var writeCharResult = check destinationChannel.write(content, 0);
-    var writeCharResult = check destinationChannel.write(content, 0);
-    if(writeCharResult is io:Error) {
-            return writeCharResult;
-    }else{
-        io:println("content written successfully");
-    }
-    var cr = destinationChannel.close();
-    if (cr is error) {
-        log:printError("Error occured while closing the channel: ", err = cr);
-        }
-    }
-    return;
-}
+//     io:WritableByteChannel wbc = check io:openWritableFile(holderRepo + "/did.json");
+
+//     io:WritableCharacterChannel wch = new(wbc, "UTF8");
+//     var result = wch.writeJson(content);
+//     closeWc(wch);
+
+//     if(destinationChannel is io:WritableCharacterChannel){
+//     // var writeCharResult = check destinationChannel.write(content, 0);
+//     var writeCharResult = check destinationChannel.write(content, 0);
+//     if(writeCharResult is io:Error) {
+//             return writeCharResult;
+//     }else{
+//         io:println("content written successfully");
+//     }
+//     var cr = destinationChannel.close();
+//     if (cr is error) {
+//         log:printError("Error occured while closing the channel: ", err = cr);
+//         }
+//     }
+//     return;
+// }
 
 public function sendTransactionAndgetHash(string data) returns (string) {
                 http:Request request2 = new;
@@ -1084,28 +1105,26 @@ public function sendTransactionAndgetHash(string data) returns (string) {
                         //finalResult = convertHexStringToString(inputString);
                     } else {
                             error err = error("(wso2/ethereum)EthereumError",
-                            { message: "Error occurred while accessing the JSON payload of the response" });
+                                                message="Error occurred while accessing the JSON payload of the response");
                             finalResult2 = jsonResponse[0]["error"].toString();
                             errorFlag2 = true;
                     }
                 } else {
-                    error err = error("(wso2/ethereum)EthereumError",
-                    { 
-                        message: "Error occurred while accessing the JSON payload of the response" });
-                        finalResult2 = jsonResponse.reason();
+                    error err = error("(wso2/ethereum)EthereumError", message="Error occurred while accessing the JSON payload of the response");
+                        finalResult2 = "Error occurred while accessing the JSON payload of the response";
                         errorFlag2 = true;
                     }
             } else {
-                error err = error("(wso2/ethereum)EthereumError", { message: "Error occurred while invoking the Ethererum API" });
+                error err = error("(wso2/ethereum)EthereumError", message="Error occurred while invoking the Ethererum API");
                 errorFlag2 = true;
             }
 
             //byte[] output = crypto:hashSha256(publicKey.toByteArray("UTF-8"));
             //string hexEncodedString = "0xe1db84093f660c49846c87cf626ade2bc54135f2420d835cfae6ba01d5d903e2";//encoding:encodeHex(output);
-            // string hexEncodedString = "0x" + utils:hashSHA256(data);//encoding:encodeHex(output);
+            string hexEncodedString = "0x" + utils:hashSHA256(data);//encoding:encodeHex(output);
             
-            byte[] hexEncodedString =  crypto:hashSha256(data.toBytes());
-            io:println("Hash with SHA256: " + hexEncodedString.toBase16());
+            byte[] hexEncodedString2 =  crypto:hashSha256(data.toBytes());
+            io:println("Hash with SHA256: " + hexEncodedString2.toBase16());
 
 
             //io:println("Hex encoded hash with SHA256: " + hexEncodedString);
@@ -1124,19 +1143,17 @@ public function sendTransactionAndgetHash(string data) returns (string) {
                     if (jsonResponse[0]["error"] == null) {
                         finalResult = jsonResponse[0].result.toString();
                     } else {
-                            error err = error("(wso2/ethereum)EthereumError",
-                            { message: "Error occurred while accessing the JSON payload of the response" });
+                            error err = error("(wso2/ethereum)EthereumError", message="Error occurred while accessing the JSON payload of the response");
                             finalResult = jsonResponse[0]["error"].toString();
                             errorFlag = true;
                     }
                 } else {
-                    error err = error("(wso2/ethereum)EthereumError",
-                    { message: "Error occurred while accessing the JSON payload of the response" });
-                    finalResult = jsonResponse.reason();
+                    error err = error("(wso2/ethereum)EthereumError", message="Error occurred while accessing the JSON payload of the response");
+                    finalResult = "Error occurred while accessing the JSON payload of the response";
                     errorFlag = true;
                 }
             } else {
-                error err = error("(wso2/ethereum)EthereumError", { message: "Error occurred while invoking the Ethererum API" });
+                error err = error("(wso2/ethereum)EthereumError", message="Error occurred while invoking the Ethererum API");
                 errorFlag = true;
             }
 

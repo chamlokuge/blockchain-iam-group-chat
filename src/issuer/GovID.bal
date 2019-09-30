@@ -28,6 +28,7 @@ import ballerina/runtime;
 import ballerina/time;
 import ballerina/lang.'int;
 import ballerina/lang.'string;
+import ballerina/stringutils;
 
 listener http:Listener uiGovIDLogin = new(9090);
 //listener http:Listener uiGovID = new(9093);
@@ -88,7 +89,8 @@ service uiServiceGovIDLogin on uiGovIDLogin {
        http:Response res = new;
 
        if (caller.localAddress.host != "") {
-           buffer= buffer.replace("localhost", caller.localAddress.host);
+           //buffer= buffer.replace("localhost", caller.localAddress.host);
+           buffer= stringutils:replace(buffer,"localhost", caller.localAddress.host);
        }
 
        res.setPayload(<@untainted> buffer);
@@ -118,7 +120,8 @@ service uiServiceGovIDLogin on uiGovIDLogin {
         var authenticated = false;
 
         foreach var x in userMap {
-            if (username.equalsIgnoreCase(x[0]) && password.equalsIgnoreCase(x[1])) {
+            //if (username.equalsIgnoreCase(x[0]) && password.equalsIgnoreCase(x[1])) {
+            if (stringutils:equalsIgnoreCase(username,x[0]) && stringutils:equalsIgnoreCase(password,x[1])) {
                 io:println("Welcome " + username);
                 authenticatedMap[username] = true;
                 var result = caller->respond("success");
@@ -152,14 +155,17 @@ service uiServiceGovIDLogin on uiGovIDLogin {
    resource function displayLoginPage2(http:Caller caller, http:Request req, string name, string message) returns error? {
        string username = req.getQueryParamValue("username") ?: "";
 
-       if ((!(username.equalsIgnoreCase(""))) && authenticatedMap[username] == true) {
+       //if ((!(username.equalsIgnoreCase(""))) && authenticatedMap[username] == true) {
+        if ((!(stringutils:equalsIgnoreCase(username,""))) && authenticatedMap[username] == true) {
             string buffer = readFile("web/govid-request.html");
             
             http:Response res = new;
 
             if (caller.localAddress.host != "") {
-                buffer= buffer.replace("localhost", caller.localAddress.host);
-                buffer= buffer.replace("EMPTYUNAME", username);
+                // buffer= buffer.replace("localhost", caller.localAddress.host);
+                // buffer= buffer.replace("EMPTYUNAME", username);
+                buffer= stringutils:replace(buffer,"localhost", caller.localAddress.host);
+                buffer= stringutils:replace(buffer,"EMPTYUNAME", username);
             }
 
             res.setPayload(<@untainted> buffer);
@@ -181,7 +187,8 @@ service uiServiceGovIDLogin on uiGovIDLogin {
             if (caller.localAddress.host != "") {
                 hostname= caller.localAddress.host;
             }
-            buffer = buffer.replace("MSG", "Re-try login via : <a href='http://" + caller.localAddress.host + ":9090'>Login Page</a>");
+            //buffer = buffer.replace("MSG", "Re-try login via : <a href='http://" + caller.localAddress.host + ":9090'>Login Page</a>");
+            buffer = stringutils:replace(buffer,"MSG", "Re-try login via : <a href='http://" + caller.localAddress.host + ":9090'>Login Page</a>");
 
             http:Response res = new;
             res.setPayload(<@untainted> buffer);
@@ -306,9 +313,11 @@ service uiServiceGovIDLogin on uiGovIDLogin {
     }
    resource function logout(http:Caller caller, http:Request req, string name, string message) {
        var requestVariableMap = req.getQueryParams();
-       string username = requestVariableMap["username"]  ?: "";
+       //string username = requestVariableMap["username"]  ?: "";
+       string username = req.getQueryParamValue("username")  ?: "";
 
-       if ((!(username.equalsIgnoreCase(""))) && authenticatedMap[username] == true) {
+       //if ((!(username.equalsIgnoreCase(""))) && authenticatedMap[username] == true) {
+        if ((!(stringutils:equalsIgnoreCase(username,""))) && authenticatedMap[username] == true) {
            authenticatedMap[username] = false;
        }
 
@@ -317,7 +326,8 @@ service uiServiceGovIDLogin on uiGovIDLogin {
        http:Response res = new;
 
        if (caller.localAddress.host != "") {
-           buffer= buffer.replace("localhost", caller.localAddress.host);
+           //buffer= buffer.replace("localhost", caller.localAddress.host);
+           buffer= stringutils:replace(buffer,"localhost", caller.localAddress.host);
        }
 
        res.setPayload(<@untainted> buffer);
@@ -345,7 +355,8 @@ service uiServiceGovIDLogin on uiGovIDLogin {
         var requestVariableMap = check req.getFormParams();
        
        if (requestVariableMap["command"] == "cmd1") {
-            if (requestVariableMap.hasKey("secureToken") && (!randomKey.equalsIgnoreCase(requestVariableMap["secureToken"] ?: ""))) {
+            //if (requestVariableMap.hasKey("secureToken") && (!randomKey.equalsIgnoreCase(requestVariableMap["secureToken"] ?: ""))) {
+            if (requestVariableMap.hasKey("secureToken") && (!stringutils:equalsIgnoreCase(randomKey,requestVariableMap["secureToken"] ?: ""))) {
                 io:println("incorrect sec token");
                 var result = caller->respond("incorrect-token");
 
@@ -366,14 +377,18 @@ service uiServiceGovIDLogin on uiGovIDLogin {
             var did = requestVariableMap["did"] ?: "";
             //var publicKey = requestVariableMap["publicKey"] ?: "";
 
-            did = did.replace("%2C", ",");
+            //did = did.replace("%2C", ",");
+            did = stringutils:replace(did,"%2C", ",");
             did = utils:binaryStringToString(did);
-            int index2 = did.indexOf("\"id\": \"did:ethr:") + 16;
+            //int index2 = did.indexOf("\"id\": \"did:ethr:") + 16;
+            int index2 = did.indexOf("\"id\": \"did:ethr:") ?: 0 + 16;
             string didmid = did.substring(index2, index2+64);
 
-            index2 = did.indexOf("-----BEGIN PUBLIC KEY-----")  + 26;
+            //index2 = did.indexOf("-----BEGIN PUBLIC KEY-----")  + 26;
+            index2 = did.indexOf("-----BEGIN PUBLIC KEY-----") ?: 0 + 26;
 
-            int index3 = did.indexOf("-----END PUBLIC KEY-----");
+            //int index3 = did.indexOf("-----END PUBLIC KEY-----");
+            int index3 = did.indexOf("-----END PUBLIC KEY-----") ?: 0;
             var publicKey = did.substring(index2, index3);
 
             didmid = "0x" + didmid;
@@ -388,24 +403,25 @@ service uiServiceGovIDLogin on uiGovIDLogin {
             if (httpResponse is http:Response) {
                 int statusCode = httpResponse.statusCode;
                 var jsonResponse = httpResponse.getJsonPayload();
-                if (jsonResponse is json) {
-                    if (jsonResponse["error"] == null) {
-                        finalResult = jsonResponse.result.toString();
-                        pkHash = jsonResponse.result["input"].toString();
+                if (jsonResponse is map<json>[]) {
+                    if (jsonResponse[0]["error"] == null) {
+                        finalResult = jsonResponse[0].result.toString();
+                        var strVal = jsonResponse[0].result;
+                        if (strVal is json) {
+                            pkHash = strVal["input"].toString();
+                        }
                     } else {
-                            error err = error("(wso2/ethereum)EthereumError",
-                            { message: "Error occurred while accessing the JSON payload of the response" });
-                            finalResult = jsonResponse["error"].toString();
+                            error err = error("(wso2/ethereum)EthereumError", message="Error occurred while accessing the JSON payload of the response");
+                            finalResult = jsonResponse[0]["error"].toString();
                             errorFlag = true;
                     }
                 } else {
-                    error err = error("(wso2/ethereum)EthereumError",
-                    { message: "Error occurred while accessing the JSON payload of the response" });
-                    finalResult = jsonResponse.reason();
+                    error err = error("(wso2/ethereum)EthereumError", message="Error occurred while accessing the JSON payload of the response");
+                    finalResult = "Error occurred while accessing the JSON payload of the response";
                     errorFlag = true;
                 }
             } else {
-                error err = error("(wso2/ethereum)EthereumError", { message: "Error occurred while invoking the Ethererum API" });
+                error err = error("(wso2/ethereum)EthereumError", message="Error occurred while invoking the Ethererum API");
                 errorFlag = true;
             }
 
@@ -438,14 +454,18 @@ service uiServiceGovIDLogin on uiGovIDLogin {
             var encryptedval = requestVariableMap["encryptedval"] ?: "";
             //var publicKey = requestVariableMap["publicKey"] ?: "";
 
-            did = did.replace("%2C", ",");
+            //did = did.replace("%2C", ",");
+            did = stringutils:replace(did,"%2C", ",");
             did = utils:binaryStringToString(did);
-            int index2 = did.indexOf("\"id\": \"did:ethr:") + 16 ?: 0;
+            //int index2 = did.indexOf("\"id\": \"did:ethr:") + 16 ?: 0;
+            int index2 = did.indexOf("\"id\": \"did:ethr:") ?: 0 + 16;
             string didmid = did.substring(index2, index2+64);
 
-            index2 = did.indexOf("-----BEGIN PUBLIC KEY-----")  + 26 ?: 0;
+            //index2 = did.indexOf("-----BEGIN PUBLIC KEY-----")  + 26 ?: 0;
+            index2 = did.indexOf("-----BEGIN PUBLIC KEY-----")  ?: 0 + 26 ;
 
-            int index3 = did.indexOf("-----END PUBLIC KEY-----");
+            //int index3 = did.indexOf("-----END PUBLIC KEY-----");
+            int index3 = did.indexOf("-----END PUBLIC KEY-----") ?: 0;
             var publicKey = did.substring(index2, index3);
             var didmidOrg = didmid;
             didmid = "0x" + didmid;
@@ -621,31 +641,42 @@ service basic on new http:Listener(9095) {
 }
 
 
-public function readFile (string filePath) returns (string) {
-        io:ReadableByteChannel readableByteChannel = io:openReadableFile(filePath);
-        var readableCharChannel = new io:ReadableCharacterChannel(readableByteChannel, "UTF-8");
-        var readableRecordsChannel = new io:ReadableTextRecordChannel(readableCharChannel);
+public function readFile(string filePath) returns string {
+    string buffer = "";
+    io:ReadableByteChannel | io:Error readableByteChannel = io:openReadableFile(filePath);
+    if (readableByteChannel is io:ReadableByteChannel) {
 
-        string buffer = "";
+        io:ReadableCharacterChannel | io:Error readableCharChannel = new io:ReadableCharacterChannel(readableByteChannel, "UTF-8");
+        //var readableCharChannel = new io:ReadableCharacterChannel(readableByteChannel, "UTF-8");
 
-        while (readableRecordsChannel.hasNext()) {
-            var result = readableRecordsChannel.getNext();
-            if (result is string[]) {
-                string item = result[0];
-                buffer += item;
-            } else {
-                 io:println("Error");
+        if (readableCharChannel is io:ReadableCharacterChannel) {
+            var readableRecordsChannel = new io:ReadableTextRecordChannel(readableCharChannel, fs = ",", rs = "\n");
+            while (readableRecordsChannel.hasNext()) {
+                var result = readableRecordsChannel.getNext();
+                if (result is string[]) {
+                    string item = <@untainted>result[0].toString();
+                    buffer += item;
+                } else {
+                    io:println("Error");
+                }
             }
         }
+    }
 
-        return buffer;
+    return buffer;
 }
 
 public function generateRandomKey(int keyLen) returns (string){
     string buffer = "";
     int counter = 0;
     while (counter < keyLen) {
-        buffer += utils:decToChar(65 + (math:randomInRange(0, 26) ?: 0));
+        int|error randVal = math:randomInRange(0, 26);
+        int n = 0;
+        if (randVal is int) {
+            n = randVal;
+        }
+
+        buffer += utils:decToChar(65 + n);
         counter += 1;
     }
 
@@ -654,7 +685,13 @@ public function generateRandomKey(int keyLen) returns (string){
 
 public function getVerifiableCredentials(string didmid) returns (string) {
     time: Time currentTime = time:currentTime();
-    string customTimeString = currentTime.format("dd-MM-yyyy");
+    // string customTimeString = currentTime.format("dd-MM-yyyy");
+    string | error timeStr = check time:format(currentTime,"dd-MM-yyyy");
+    string customTimeString = "";
+    if (timeStr is string) {
+        customTimeString = timeStr;
+    }
+
     string country = "";
     string firstname = "";
     var selectRet = ssiDB->select(<@untainted> "select country, firstname from ssidb.govid where (did LIKE '"+ <@untainted> didmid +"');", ());
@@ -740,24 +777,22 @@ public function sendTransactionAndgetHash(string data) returns (string) {
             if (httpResponse2 is http:Response) {
                 int statusCode = httpResponse2.statusCode;
                 var jsonResponse = httpResponse2.getJsonPayload();
-                if (jsonResponse is json) {
-                    if (jsonResponse["error"] == null) {
-                        finalResult2 = jsonResponse.result.toString();
+                if (jsonResponse is map<json>[]) {
+                    if (jsonResponse[0]["error"] == null) {
+                        finalResult2 = jsonResponse[0].result.toString();
                         //finalResult = HexStringToString(inputString);
                     } else {
-                            error err = error("(wso2/ethereum)EthereumError",
-                            { message: "Error occurred while accessing the JSON payload of the response" });
-                            finalResult2 = jsonResponse["error"].toString();
+                            error err = error("(wso2/ethereum)EthereumError", message="Error occurred while accessing the JSON payload of the response");
+                            finalResult2 = jsonResponse[0]["error"].toString();
                             errorFlag2 = true;
                     }
                 } else {
-                    error err = error("(wso2/ethereum)EthereumError",
-                    { message: "Error occurred while accessing the JSON payload of the response" });
-                    finalResult2 = jsonResponse.reason();
+                    error err = error("(wso2/ethereum)EthereumError", message="Error occurred while accessing the JSON payload of the response");
+                    finalResult2 = "Error occurred while accessing the JSON payload of the response";
                     errorFlag2 = true;
                 }
             } else {
-                error err = error("(wso2/ethereum)EthereumError", { message: "Error occurred while invoking the Ethererum API" });
+                error err = error("(wso2/ethereum)EthereumError", message="Error occurred while invoking the Ethererum API");
                 errorFlag2 = true;
             }
 
@@ -776,23 +811,21 @@ public function sendTransactionAndgetHash(string data) returns (string) {
             if (httpResponse is http:Response) {
                 int statusCode = httpResponse.statusCode;
                 var jsonResponse = httpResponse.getJsonPayload();
-                if (jsonResponse is json) {
-                    if (jsonResponse["error"] == null) {
-                        finalResult = jsonResponse.result.toString();
+                if (jsonResponse is map<json>[]) {
+                    if (jsonResponse[0]["error"] == null) {
+                        finalResult = jsonResponse[0].result.toString();
                     } else {
-                            error err = error("(wso2/ethereum)EthereumError",
-                            { message: "Error occurred while accessing the JSON payload of the response" });
-                            finalResult = jsonResponse["error"].toString();
+                            error err = error("(wso2/ethereum)EthereumError", message="Error occurred while accessing the JSON payload of the response");
+                            finalResult = jsonResponse[0]["error"].toString();
                             errorFlag = true;
                     }
                 } else {
-                    error err = error("(wso2/ethereum)EthereumError",
-                    { message: "Error occurred while accessing the JSON payload of the response" });
-                    finalResult = jsonResponse.reason();
+                    error err = error("(wso2/ethereum)EthereumError", message="Error occurred while accessing the JSON payload of the response");
+                    finalResult = "Error occurred while accessing the JSON payload of the response";
                     errorFlag = true;
                 }
             } else {
-                error err = error("(wso2/ethereum)EthereumError", { message: "Error occurred while invoking the Ethererum API" });
+                error err = error("(wso2/ethereum)EthereumError", message="Error occurred while invoking the Ethererum API");
                 errorFlag = true;
             }
 
