@@ -23,6 +23,7 @@ import wso2/ethereum;
 import wso2/utils;
 import ballerina/lang.'int;
 import ballerina/stringutils;
+import ballerina/grpc;
 
 listener http:Listener uiEP = new(9097);
 listener http:Listener blockChainInterfaceEP = new(9096);
@@ -412,14 +413,15 @@ service chainPage on blockChainInterfaceEP {
     return request;
 }
 
-public function resultToString(json jsonPayload) returns string {
-    //resource function resultToString(json jsonPayload) returns string {
+//public function resultToString(json jsonPayload) returns string {
+    resource function resultToString(json jsonPayload) returns string {
     // string result = jsonPayload["result"] != null ? jsonPayload["result"].toString() : "";
     string result = jsonPayload["result"] != null ? jsonPayload["result"].toString() : "";
     return result;
 }
 
-public function setResponseError(json jsonResponse) returns error {
+// public function setResponseError(json jsonResponse) returns error {
+    resource function setResponseError(json jsonResponse) returns error {
     map<string> details = { message: jsonResponse["error"].message.toString() };
     error err = error("(wso2/ethereum)EthereumError", details);
     return err;
