@@ -4,3 +4,4 @@ version= "0.1.0"
 
 [dependencies]
 "wso2/utils" = { path = "lib/utils-2019r3-java8-0.1.0.balo"}
+"wso2/ethereum" = { path = "lib/ethereum-2019r3-any-0.9.0.balo"}
