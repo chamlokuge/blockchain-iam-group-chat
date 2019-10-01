@@ -408,8 +408,10 @@ service uiServiceGovIDLogin on uiGovIDLogin {
                     if (jsonResponse[0]["error"] == null) {
                         finalResult = jsonResponse[0].result.toString();
                         var strVal = jsonResponse[0].result;
-                        if (strVal is json) {
-                            pkHash = strVal["input"].toString();
+                        // if (strVal is json) {
+                        //     pkHash = strVal["input"].toString();
+                        if (strVal is map<json>[]) {
+                            pkHash = strVal[0]["input"].toString();
                         }
                     } else {
                             error err = error("(wso2/ethereum)EthereumError", message="Error occurred while accessing the JSON payload of the response");
