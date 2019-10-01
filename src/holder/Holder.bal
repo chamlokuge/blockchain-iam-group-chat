@@ -17,17 +17,9 @@
 import ballerina/http;
 import ballerina/log;
 import ballerina/io;
-import ballerina/config;
-import ballerina/math;
-// import ballerina/mysql;
-// import ballerina/sql;
 import ballerinax/java.jdbc;
 import ballerina/runtime;
 import ballerina/crypto;
-//import ballerina/encoding;
-import ballerina/lang.'int;
-import ballerina/lang.'string as strings;
-import wso2/ethereum;
 import wso2/utils;
 import ballerina/stringutils;
 import ballerina/file;
@@ -44,41 +36,18 @@ string pk = "";
 string verifiableCredentialsRepositoryURL = "https://localhost:9091/vc/";
 string ethereumAccount = "0x3dd551059b5ba2fd8fe48bf5699bd54eea46bd53";
 
-ethereum:EthereumConfiguration ethereumConfig = {
-    jsonRpcEndpoint: "http://192.168.32.1:8083",
-    jsonRpcVersion: "2.0",
-    networkId: "2000"
-};
+final string WEB3_CLIENT_VERSION = "web3_clientVersion";
 
-ethereum:Client ethereumClient = new(ethereumConfig);
+http:Client ethereumClient = new("http://192.168.32.1:8083");
 
-// public function main() {
-//     var response = ethereumClient->getWeb3ClientVersion();
-//     if (response is string) {
-//         io:println("Web3 Client Version: ", response);
-//     } else {
-//         io:println("Error: ", response);
-//     }
-// }
-// mysql:Client ssiDB = new({
-//         host: "192.168.32.1",
-//         port: 3306,
-//         name: "ssidb",
-//         username: "test",
-//         password: "test",
-//         dbOptions: { useSSL: false }
-//     });
 jdbc:Client ssiDB = new({
         url: "jdbc:mysql://192.168.32.1:3306/ssidb",
         username: "test",
         password: "test",
         dbOptions: { useSSL: false }
-    });
+});
 
 string holderRepo = "/var/tmp/iam/holder/alice";
-
-string jsonRpcEndpoint = ethereumConfig.jsonRpcEndpoint;
-//http:Client ethereumClient = new(jsonRpcEndpoint, config = ethereumConfig.clientConfig);
 
 @http:ServiceConfig { basePath:"/",
     cors: {
@@ -96,13 +65,12 @@ service uiServiceHolderLogin on uiHolderLogin {
             allowHeaders: ["Authorization, Lang"]
         }
     }
-   resource function displayLoginPage(http:Caller caller, http:Request req, string name, string message) {
+   resource function displayLoginPage(http:Caller caller, http:Request req) {
        string buffer = readFile("web/holder-login.html");
        
        http:Response res = new;
 
        if (caller.localAddress.host != "") {
-        // buffer= buffer.replace("localhost",caller.localAddress.host);
         buffer= stringutils:replace(buffer,"localhost",caller.localAddress.host);
        }
 
@@ -126,14 +94,13 @@ service uiServiceHolderLogin on uiHolderLogin {
             allowHeaders: ["Authorization, Lang"]
         }
     }
-   resource function processLogin(http:Caller caller, http:Request req, string name, string message) returns error?{
+   resource function processLogin(http:Caller caller, http:Request req) returns error?{
         var requestVariableMap = check req.getFormParams();
         string username = requestVariableMap["username"]  ?: "";
         string password = requestVariableMap["pwd"]  ?: "";
         var authenticated = false;
 
         foreach var x in userMap {
-            // if (username.equalsIgnoreCase(x[0]) && password.equalsIgnoreCase(x[1])) {
             if (stringutils:equalsIgnoreCase(username,x[0]) && stringutils:equalsIgnoreCase(password,x[1])) {
                 io:println("Welcome " + username);
                 authenticatedMap[username] = true;
@@ -165,33 +132,17 @@ service uiServiceHolderLogin on uiHolderLogin {
             allowHeaders: ["Authorization, Lang"]
         }
     }
-   resource function displayLoginPage2(http:Caller caller, http:Request req, string name, string message) returns error? {
-    //    map<string[]> requestVariableMap = req.getQueryParams();
-    //      string username = requestVariableMap["username"]  ?: "";
-
+   resource function displayLoginPage2(http:Caller caller, http:Request req) returns error? {
         string username = req.getQueryParamValue("username") ?: "";
-        
-        // map requestVariableMap = request.getQueryParams();
-        // if(requestVariableMap.hasKey("username")){
-        //     string username= <string>requestVariableMap["username"];
-        // }
-
-        // string username = <string>requestVariableMap["username"] ;
-
-        
-                    // if(utils:fileExists(holderRepo + "/did.json") == "-1") {
-                        boolean fileExists = file:exists(holderRepo + "/did.json");
-                    if(fileExists.toString() == "-1") {
-                    // if ((!(username.equalsIgnoreCase(""))) && authenticatedMap[username] == true) {
+        boolean fileExists = file:exists(holderRepo + "/did.json");
+        if(fileExists.toString() == "-1") {
             if ((!(stringutils:equalsIgnoreCase(username,""))) && authenticatedMap[username] == true) {
                     var buffer = readFile("web/holder-homepage-no-did.html");
 
                     http:Response res = new;
 
                     if (caller.localAddress.host != "") {
-                        // buffer= buffer.replace("localhost", caller.localAddress.host);
                         buffer= stringutils:replace(buffer,"localhost", caller.localAddress.host);
-                        // buffer= buffer.replace("EMPTYUNAME", username);
                         buffer= stringutils:replace(buffer,"EMPTYUNAME", username);
                     }
 
@@ -214,7 +165,6 @@ service uiServiceHolderLogin on uiHolderLogin {
                     if (caller.localAddress.host != "") {
                         hostname= caller.localAddress.host;
                     }
-                    // buffer = buffer.replace("MSG", "Re-try login via : <a href='http://" + caller.localAddress.host + ":9091'>Login Page</a>");
                     buffer = stringutils:replace(buffer,"MSG", "Re-try login via : <a href='http://" + caller.localAddress.host + ":9091'>Login Page</a>");
 
 
@@ -231,27 +181,15 @@ service uiServiceHolderLogin on uiHolderLogin {
                     }
                 }
            } else {
-                    // if ((!(username.equalsIgnoreCase(""))) && authenticatedMap[username] == true) {
                         if ((!(stringutils:equalsIgnoreCase(username,""))) && authenticatedMap[username] == true) {
                     var buffer = readFile("web/holder-homepage-with-did.html");
                     var didTxt = readFile(holderRepo + "/did.json");
                     http:Response res = new;
 
-                    // int index = didTxt.indexOf("\"id\": \"did:ethr:") + 16;
-                    int index = didTxt.indexOf("\"id\": \"did:ethr:") ?: 0 + 16;
-                    //string didmid;
-                    
-                    // if(index is int){
-                    // io:println(index);
-                    // }
-                    
+                    int index = didTxt.indexOf("\"id\": \"did:ethr:") ?: 0 + 16;                  
                     string didmid = didTxt.substring(index, index+64);
 
                     if (caller.localAddress.host != "") {
-                        // buffer= buffer.replace("localhost", caller.localAddress.host);
-                        // buffer= buffer.replace("DIDTEXT", didTxt);
-                        // buffer= buffer.replace("EMPTYUNAME", username);
-                        // buffer = buffer.replace("DIDMID", didmid);
                         buffer= stringutils:replace(buffer,"localhost", caller.localAddress.host);
                         buffer= stringutils:replace(buffer,"DIDTEXT", didTxt);
                         buffer= stringutils:replace(buffer,"EMPTYUNAME", username);
@@ -277,7 +215,6 @@ service uiServiceHolderLogin on uiHolderLogin {
                     if (caller.localAddress.host != "") {
                         hostname= caller.localAddress.host;
                     }
-                    // buffer = buffer.replace("MSG", "Re-try login via : <a href='http://" + caller.localAddress.host + ":9091'>Login Page</a>");
                      buffer = stringutils:replace(buffer,"MSG", "Re-try login via : <a href='http://" + caller.localAddress.host + ":9091'>Login Page</a>");
 
 
@@ -305,7 +242,7 @@ service uiServiceHolderLogin on uiHolderLogin {
             allowHeaders: ["Authorization, Lang"]
         }
     }
-   resource function displayLoginPage3(http:Caller caller, http:Request req, string name, string message) returns error? {
+   resource function displayLoginPage3(http:Caller caller, http:Request req) returns error? {
         string username = req.getQueryParamValue("username") ?: "";
         string did = req.getQueryParamValue("did") ?: "";
 
@@ -313,11 +250,8 @@ service uiServiceHolderLogin on uiHolderLogin {
         string tbl = "<table><tr><td>No Verifiable credentials associated with your account yet.";
 
         if (selectRet is table<record {}>) {
-            // var jsonConversionRet = json.convert(selectRet);
             var jsonConversionRet = json.constructFrom(selectRet);
-            //if (jsonConversionRet is json) {
             if (jsonConversionRet is map<json>[]) {
-                //json[] j2 = <json[]> jsonConversionRet;
                 int l = jsonConversionRet.toJsonString().length();
                 int i = 0;
                 if (l == 0) {
@@ -326,18 +260,12 @@ service uiServiceHolderLogin on uiHolderLogin {
                     tbl = "<table border=\"1px\" cellspacing=\"0\" cellpadding=\"3\"><tr><th>Verifiable Cerdential's DID</th><th>Name</th><th>Issuer</th></tr>";
                     while (i < l) {
                         tbl = tbl + "<tr><td><a href=\"#\" onclick=\"showVC('" + jsonConversionRet[i]["id"].toJsonString() + "');\">";
-                        //tbl = tbl + "<tr><td><a href=\"#\" onclick=\"showVC('" + jsonutils:fromTable(jsonConversionRet[i]["id"].toJsonString()) + "');\">";
-
-                         tbl = tbl + jsonConversionRet[i]["id"].toString();
-                        
-                        //io:println(jsonConversionRet[i]["id"]);
+                        tbl = tbl + jsonConversionRet[i]["id"].toString();
                         tbl = tbl + "</a></td><td>";
                         tbl = tbl + jsonConversionRet[i]["name"].toString();
                         
-                         tbl = tbl + "</td><td>";
+                        tbl = tbl + "</td><td>";
                         tbl = tbl + jsonConversionRet[i]["issuer"].toString();
-                        
-                        //io:println(jsonConversionRet[i]["issuer"]);
                         i = i + 1;
                     }
                     tbl += "</td></tr></table>";
@@ -349,13 +277,9 @@ service uiServiceHolderLogin on uiHolderLogin {
             io:println("Select data from vclist table failed");
         }
 
-        // if ((!(username.equalsIgnoreCase(""))) && authenticatedMap[username] == true) {
-            if ((!(stringutils:equalsIgnoreCase(username,""))) && authenticatedMap[username] == true) {
+        if ((!(stringutils:equalsIgnoreCase(username,""))) && authenticatedMap[username] == true) {
             var buffer = readFile("web/holder-homepage-vc.html");
             var didTxt = "";
-
-
-            // if(utils:fileExists(holderRepo + "/did.json") == "-1") {
             boolean fileExists = file:exists(holderRepo + "/did.json");
             if(fileExists.toString() == "-1") {
                 
@@ -367,18 +291,13 @@ service uiServiceHolderLogin on uiHolderLogin {
             http:Response res = new;
 
             if (caller.localAddress.host != "") {
-                // buffer = buffer.replace("localhost", caller.localAddress.host);
-                // buffer = buffer.replace("EMPTYUNAME", username);
                 buffer = stringutils:replace(buffer,"localhost", caller.localAddress.host);
                 buffer = stringutils:replace(buffer,"EMPTYUNAME", username);
-                io:println("tbl:" + tbl);
-                // buffer = buffer.replace("VCTABLE", tbl);
-                // buffer = buffer.replace("DIDMID", did);
+
                 buffer = stringutils:replace(buffer,"VCTABLE", tbl);
                 buffer = stringutils:replace(buffer,"DIDMID", did);
                 
                 didTxt = utils:stringToBinaryString(didTxt);
-                // buffer = buffer.replace("DIDTXTVAL", didTxt);
                 buffer = stringutils:replace(buffer,"DIDTXTVAL", didTxt);
             }
 
@@ -401,7 +320,7 @@ service uiServiceHolderLogin on uiHolderLogin {
             if (caller.localAddress.host != "") {
                 hostname= caller.localAddress.host;
             }
-            // buffer = buffer.replace("MSG", "Re-try login via : <a href='http://" + caller.localAddress.host + ":9091'>Login Page</a>");
+
             buffer = stringutils:replace(buffer,"MSG", "Re-try login via : <a href='http://" + caller.localAddress.host + ":9091'>Login Page</a>");
 
             http:Response res = new;
@@ -427,21 +346,16 @@ service uiServiceHolderLogin on uiHolderLogin {
             allowHeaders: ["Authorization, Lang"]
         }
     }
-   resource function listVC(http:Caller caller, http:Request req, string name, string message) returns error? {
-        //var requestVariableMap = req.getQueryParams();
+   resource function listVC(http:Caller caller, http:Request req) returns error? {
         map<string> requestVariableMap = check req.getFormParams();
-        //string username = requestVariableMap["username"]  ?: "";
         string did = requestVariableMap["did"]  ?: "";
         io:println("did:" + did);
         var selectRet = ssiDB->select(<@untainted> "select id, issuer, name from ssidb.vclist where (did LIKE '"+ <@untainted> did +"');", ());
         string tbl = "<table><tr><td>No Verifiable credentials associated with your account yet.";
 
         if (selectRet is table<record {}>) {
-            //var jsonConversionRet = json.convert(selectRet);
             var jsonConversionRet = json.constructFrom(selectRet);
-            //if (jsonConversionRet is json) {
             if (jsonConversionRet is map<json>[]) {
-                // int l = jsonConversionRet.length();
                 int l = jsonConversionRet.toJsonString().length();
                 int i = 0;
                 if (l == 0) {
@@ -451,13 +365,11 @@ service uiServiceHolderLogin on uiHolderLogin {
                     while (i < l) {
                         tbl = tbl + "<tr><td><a href=\"#\" onclick=\"showVC('" + jsonConversionRet[i]["id"].toString() + "');\">";
                         tbl = tbl + jsonConversionRet[i]["id"].toString();
-                        //io:println(jsonConversionRet[i]["id"]);
                         tbl = tbl + "</a></td><td>";
                         tbl = tbl + jsonConversionRet[i]["name"].toString();
-                         tbl = tbl + "</td><td>";
+                        tbl = tbl + "</td><td>";
                         tbl = tbl + jsonConversionRet[i]["issuer"].toString();
                         tbl = tbl + "</td><td><input type=\"checkbox\" id=\"" + jsonConversionRet[i]["id"].toString()  + "\" name=\"vcselect\"\\>";
-                        //io:println(jsonConversionRet[i]["issuer"]);
                         i = i + 1;
                     }
                     tbl += "</td></tr></table><br/><input id=\"vc-btn\" type=\"button\" value=\"Submit VC\" onclick=\"submitVC()\">";
@@ -469,28 +381,8 @@ service uiServiceHolderLogin on uiHolderLogin {
             io:println("Select data from vclist table failed");
         }
 
-        // if ((!(username.equalsIgnoreCase(""))) && authenticatedMap[username] == true) {
-        //     var buffer = readFile("web/holder-homepage-vc.html");
-        //     var didTxt = "";
-        //     if(utils:fileExists(holderRepo + "/did.json") == "-1") {
-        // 	    io:println("Cannot find the DID file.");
-	    //     } else {
-        //         didTxt = readFile(holderRepo + "/did.json");
-        //     }
-
             http:Response res = new;
             var buffer = tbl;
-
-        //     if (caller.localAddress.host != "") {
-        //         buffer = buffer.replace("localhost", caller.localAddress.host);
-        //         buffer = buffer.replace("EMPTYUNAME", username);
-        //         io:println("tbl:" + tbl);
-        //         buffer = buffer.replace("VCTABLE", tbl);
-        //         buffer = buffer.replace("DIDMID", did);
-                
-        //         didTxt = utils:stringToBinaryString(didTxt);
-        //         buffer = buffer.replace("DIDTXTVAL", didTxt);
-        //     }
 
             res.setPayload(<@untainted> buffer);
             res.setContentType("text/html; charset=utf-8");
@@ -502,29 +394,6 @@ service uiServiceHolderLogin on uiHolderLogin {
             if (result is error) {
                 log:printError("Error sending response", err = result);
             }
-        // } else {
-        //     io:println("Error login");
-
-        //     string buffer = readFile("web/error.html");
-        //     string hostname = "localhost";
-
-        //     if (caller.localAddress.host != "") {
-        //         hostname= caller.localAddress.host;
-        //     }
-        //     buffer = buffer.replace("MSG", "Re-try login via : <a href='http://" + caller.localAddress.host + ":9091'>Login Page</a>");
-
-        //     http:Response res = new;
-        //     res.setPayload(untaint buffer);
-        //     res.setContentType("text/html; charset=utf-8");
-        //     res.setHeader("Access-Control-Allow-Origin", "*");
-        //     res.setHeader("Access-Control-Allow-Methods", "POST,GET,PUT,DELETE");
-        //     res.setHeader("Access-Control-Allow-Headers", "Authorization, Lang");
-
-        //     var result = caller->respond(res);
-        //     if (result is error) {
-        //             log:printError("Error sending response", err = result);
-        //     }
-        // }
    }
 
     @http:ResourceConfig {
@@ -535,14 +404,10 @@ service uiServiceHolderLogin on uiHolderLogin {
             allowHeaders: ["Authorization, Lang"]
         }
     }
-   resource function api(http:Caller caller, http:Request req, string name, string message) returns error?{
+   resource function api(http:Caller caller, http:Request req) returns error?{
         var requestVariableMap = check req.getFormParams();
         
         string publicKey = requestVariableMap["publickey"]  ?: "";
-        // publicKey = publicKey.replace("+", " ");
-        // publicKey = publicKey.replace("%2B", "+");
-        // publicKey = publicKey.replace("%2F", "/");
-        // publicKey = publicKey.replace("%3D", "=");
         publicKey = stringutils:replace(publicKey,"+", " ");
         publicKey = stringutils:replace(publicKey,"%2B", "+");
         publicKey = stringutils:replace(publicKey,"%2F", "/");
@@ -625,7 +490,6 @@ service uiServiceHolderLogin on uiHolderLogin {
 
             if (selectRet is table<record {}>) {
                 if (selectRet.hasNext()) {
-                    // var jsonConversionRet = json.convert(selectRet);
                     var jsonConversionRet = json.constructFrom(selectRet);
                     
                     if (jsonConversionRet is map<json>[]) {
@@ -652,7 +516,6 @@ service uiServiceHolderLogin on uiHolderLogin {
                 }
             }
 
-            // vcTxt = vcTxt.replace("'","''");
             vcTxt = stringutils:replace(vcTxt,"'","''");
             var ret = ssiDB->update(<@untainted> ("insert into ssidb.vclist(did, id, issuer, name, vctext) " + "values ('"+ did +"', '" + didVC.substring(2, didVC.length()) + "', '" + issuerVC + "', '"+ nameVC +"', '" + vcTxt + "');"));
      
@@ -661,13 +524,10 @@ service uiServiceHolderLogin on uiHolderLogin {
 
                 if (selectRet2 is table<record {}>) {
                     io:println("\nConvert the table into json3");
-                    // var jsonConversionRet = json.convert(selectRet2);
                     var jsonConversionRet = json.constructFrom(selectRet2);
                     if (jsonConversionRet is map<json>[]) {
-                        // io:print("JSON: ");
                         io:println(io:sprintf("%s", jsonConversionRet));
 
-                        // int l = jsonConversionRet.length();
                         int l = jsonConversionRet.toJsonString().length();
                         io:print("len l: " + l.toString());
                         int i = 0;
@@ -678,12 +538,10 @@ service uiServiceHolderLogin on uiHolderLogin {
                             while (i < l) {
                                 tbl = tbl + "<tr><td>";
                                 tbl = tbl + jsonConversionRet[i]["id"].toString();
-                                //io:println(jsonConversionRet[i]["id"]);
                                 tbl = tbl + "</td><td>";
                                 tbl = tbl + jsonConversionRet[i]["name"].toString();
                                 tbl = tbl + "</td><td>";
                                 tbl = tbl + jsonConversionRet[i]["issuer"].toString();
-                                //io:println(jsonConversionRet[i]["issuer"]);
                                 i = i + 1;
                             }
                             tbl += "</td></tr></table>";
@@ -716,7 +574,6 @@ service uiServiceHolderLogin on uiHolderLogin {
 
             if (selectRet is table<record {}>) {
                 if (selectRet.hasNext()) {
-                    // var jsonConversionRet = json.convert(selectRet);
                     var jsonConversionRet = json.constructFrom(selectRet);
                     
                     if (jsonConversionRet is map<json>[]) {
@@ -750,7 +607,7 @@ service uiServiceHolderLogin on uiHolderLogin {
             allowHeaders: ["Authorization, Lang"]
         }
     }
-   resource function sendGOVIDCSS(http:Caller caller, http:Request req, string name, string message) {
+   resource function sendGOVIDCSS(http:Caller caller, http:Request req) {
        http:Response res = new;
 
        res.setFileAsPayload("web/govid-request.css", contentType = "text/css");
@@ -770,7 +627,7 @@ service uiServiceHolderLogin on uiHolderLogin {
             allowHeaders: ["Authorization, Lang"]
         }
     }
-   resource function sendBundle(http:Caller caller, http:Request req, string name, string message) {
+   resource function sendBundle(http:Caller caller, http:Request req) {
        http:Response res = new;
 
        res.setFileAsPayload("web/bundle.js", contentType = "text/javascript");
@@ -790,7 +647,7 @@ service uiServiceHolderLogin on uiHolderLogin {
             allowHeaders: ["Authorization, Lang"]
         }
     }
-   resource function sendFileSaver(http:Caller caller, http:Request req, string name, string message) {
+   resource function sendFileSaver(http:Caller caller, http:Request req) {
        http:Response res = new;
 
        res.setFileAsPayload("web/FileSaver.js", contentType = "text/javascript");
@@ -810,7 +667,7 @@ service uiServiceHolderLogin on uiHolderLogin {
             allowHeaders: ["Authorization, Lang"]
         }
     }
-   resource function sendJSEncrypt(http:Caller caller, http:Request req, string name, string message) {
+   resource function sendJSEncrypt(http:Caller caller, http:Request req) {
        http:Response res = new;
 
        res.setFileAsPayload("web/jsencrypt.js", contentType = "text/javascript");
@@ -826,7 +683,7 @@ service uiServiceHolderLogin on uiHolderLogin {
         methods:["GET"],
         path:"/browser-aes.js"
     }
-   resource function sendBrowserAES(http:Caller caller, http:Request req, string name, string message) {
+   resource function sendBrowserAES(http:Caller caller, http:Request req) {
        http:Response res = new;
 
        res.setFileAsPayload("web/browser-aes.js", contentType = "text/javascript");
@@ -846,11 +703,10 @@ service uiServiceHolderLogin on uiHolderLogin {
             allowHeaders: ["Authorization, Lang"]
         }
     }
-   resource function logout(http:Caller caller, http:Request req, string name, string message) {
-        string username = req.getQueryParamValue("username") ?: "";
+   resource function logout(http:Caller caller, http:Request req) {
+       string username = req.getQueryParamValue("username") ?: "";
 
-    //    if ((!(username.equalsIgnoreCase(""))) && authenticatedMap[username] == true) {
-        if ((!(stringutils:equalsIgnoreCase(username,""))) && authenticatedMap[username] == true) {
+       if ((!(stringutils:equalsIgnoreCase(username,""))) && authenticatedMap[username] == true) {
            authenticatedMap[username] = false;
        }
 
@@ -859,8 +715,7 @@ service uiServiceHolderLogin on uiHolderLogin {
        http:Response res = new;
 
        if (caller.localAddress.host != "") {
-        //    buffer= buffer.replace("localhost", caller.localAddress.host);
-        buffer= stringutils:replace(buffer,"localhost", caller.localAddress.host);
+         buffer= stringutils:replace(buffer,"localhost", caller.localAddress.host);
        }
 
        res.setPayload(<@untainted> buffer);
@@ -876,12 +731,6 @@ service uiServiceHolderLogin on uiHolderLogin {
        }
    }
  }
-
-// @http:WebSocketServiceConfig {
-//     path: "/basic/ws",
-//     subProtocols: ["xml", "json"],
-//     idleTimeoutInSeconds: 120
-// }
 
 string ping = "ping";
 byte[] pingData = ping.toBytes();
@@ -922,21 +771,7 @@ service basic on new http:Listener(9093) {
                 log:printError("Error sending ping", <error> err);
             }
         } else if (text == "closeMe") {
-        //     var err = caller->close(statusCode = 1001,
-        //                     reason = "You asked me to close the connection",
-        //                     timeoutInSecs = 0);
-        // } else {
-        //     chatBuffer = <@untainted> text + "\r\n";
-        //     var err = caller->pushText(chatBuffer);
-        //     if (err is error) {
-        //         log:printError("Error occurred when sending text", err = err);
-        //     }
-
-        //     io:println("Pinging...");
-        //     var err2 = caller->ping(self.pingData);
-        //     if (err2 is error) {
-        //         log:printError("Error sending ping", err = err);
-        error? result = caller->close(statusCode = 1001,
+            error? result = caller->close(statusCode = 1001,
                             reason = "You asked me to close the connection",
                             timeoutInSeconds = 0);
             if (result is http:WebSocketError) {
@@ -974,13 +809,6 @@ service basic on new http:Listener(9093) {
 
     resource function onIdleTimeout(http:WebSocketCaller caller) {
         io:println("\nReached idle timeout");
-        // io:println("Closing connection " + caller.id);
-        // var err = caller->close(statusCode = 1001, reason =
-        //                             "Connection timeout");
-        // if (err is error) {
-        //     log:printError("Error occured when closing the connection",
-        //                         err = err);
-        // }
         io:println("Closing connection " + caller.getConnectionId());
         var err = caller->close(statusCode = 1001, reason =
                                     "Connection timeout");
@@ -1008,40 +836,12 @@ function closeWc(io:WritableCharacterChannel wc) {
     }
 }
 
-
-// public function readFile (string filePath) returns (string) {
-//         // io:ReadableByteChannel readableByteChannel = io:openReadableFile(filePath);
-//         //io:ReadableByteChannel readableByteChannel = check io:openReadableFile(filePath);
-//         io:ReadableByteChannel | io:Error readableByteChannel = io:openReadableFile(filePath);
-//         // if (readableByteChannel is io:ReadableByteChannel) {
-//         //     byte[] | io:Error result = readableByteChannel.read(100);
-//         // }
-//         var readableCharChannel = new io:ReadableCharacterChannel(readableByteChannel, "UTF-8");
-//         //io:ReadableCharacterChannel | io:Error readableCharChannel = new io:ReadableCharacterChannel(readableByteChannel, "UTF-8");
-//         //var readableRecordsChannel = new io:ReadableTextRecordChannel(readableCharChannel);
-//         var readableRecordsChannel = new io:ReadableTextRecordChannel(readableCharChannel, fs = ",", rs = "\n");
-
-//         string buffer = "";
-
-//         while (readableRecordsChannel.hasNext()) {
-//             var result = readableRecordsChannel.getNext();
-//             if (result is string[]) {
-//                 string item = result[0].toString();
-//                 buffer += item;
-//             } else {
-//                  io:println("Error");
-//             }
-//         }
-
-//         return buffer;
-// }
 public function readFile(string filePath) returns string {
     string buffer = "";
     io:ReadableByteChannel | io:Error readableByteChannel = io:openReadableFile(filePath);
     if (readableByteChannel is io:ReadableByteChannel) {
 
         io:ReadableCharacterChannel | io:Error readableCharChannel = new io:ReadableCharacterChannel(readableByteChannel, "UTF-8");
-        //var readableCharChannel = new io:ReadableCharacterChannel(readableByteChannel, "UTF-8");
 
         if (readableCharChannel is io:ReadableCharacterChannel) {
             var readableRecordsChannel = new io:ReadableTextRecordChannel(readableCharChannel, fs = ",", rs = "\n");
@@ -1059,34 +859,6 @@ public function readFile(string filePath) returns string {
     return buffer;
 }
 
-// public function writeFile(string filePath, string content) returns error? {
-// //public function writeFile(io:ReadableCharacterChannel sc, io:WritableCharacterChannel dc) returns error?{
-
-//     //io:WritableCharacterChannel destinationChannel = new(io:openWritableFile(holderRepo + "/did.json"), "UTF-8");
-//     io:WritableCharacterChannel | io:Error destinationChannel = new io:openWritableFile((holderRepo + "/did.json"), "UTF-8");
-
-//     io:WritableByteChannel wbc = check io:openWritableFile(holderRepo + "/did.json");
-
-//     io:WritableCharacterChannel wch = new(wbc, "UTF8");
-//     var result = wch.writeJson(content);
-//     closeWc(wch);
-
-//     if(destinationChannel is io:WritableCharacterChannel){
-//     // var writeCharResult = check destinationChannel.write(content, 0);
-//     var writeCharResult = check destinationChannel.write(content, 0);
-//     if(writeCharResult is io:Error) {
-//             return writeCharResult;
-//     }else{
-//         io:println("content written successfully");
-//     }
-//     var cr = destinationChannel.close();
-//     if (cr is error) {
-//         log:printError("Error occured while closing the channel: ", err = cr);
-//         }
-//     }
-//     return;
-// }
-
 public function sendTransactionAndgetHash(string data) returns (string) {
                 http:Request request2 = new;
             request2.setHeader("Content-Type", "application/json");
@@ -1094,7 +866,7 @@ public function sendTransactionAndgetHash(string data) returns (string) {
 
             string finalResult2 = "";
             boolean errorFlag2 = false;
-            var httpResponse2 = ethereumClient -> post("/", request2);
+            var httpResponse2 = ethereumClient -> post("/", constructRequest("2.0", 2000, "personal_unlockAccount", "[]"));
 
             if (httpResponse2 is http:Response) {
                 int statusCode = httpResponse2.statusCode;
@@ -1102,7 +874,6 @@ public function sendTransactionAndgetHash(string data) returns (string) {
                 if (jsonResponse is map<json>[]) {
                     if (jsonResponse[0]["error"] == null) {
                         finalResult2 = jsonResponse[0].result.toString();
-                        //finalResult = convertHexStringToString(inputString);
                     } else {
                             error err = error("(wso2/ethereum)EthereumError",
                                                 message="Error occurred while accessing the JSON payload of the response");
@@ -1119,15 +890,11 @@ public function sendTransactionAndgetHash(string data) returns (string) {
                 errorFlag2 = true;
             }
 
-            //byte[] output = crypto:hashSha256(publicKey.toByteArray("UTF-8"));
-            //string hexEncodedString = "0xe1db84093f660c49846c87cf626ade2bc54135f2420d835cfae6ba01d5d903e2";//encoding:encodeHex(output);
             string hexEncodedString = "0x" + utils:hashSHA256(data);//encoding:encodeHex(output);
             
             byte[] hexEncodedString2 =  crypto:hashSha256(data.toBytes());
             io:println("Hash with SHA256: " + hexEncodedString2.toBase16());
 
-
-            //io:println("Hex encoded hash with SHA256: " + hexEncodedString);
             //Next we will write the blockchain record
             http:Request request = new;
             request.setHeader("Content-Type", "application/json");
@@ -1135,7 +902,8 @@ public function sendTransactionAndgetHash(string data) returns (string) {
 
             string finalResult = "";
             boolean errorFlag = false;
-            var httpResponse = ethereumClient -> post("/", request);
+            var httpResponse = ethereumClient -> post("/", constructRequest("2.0", 2000, "eth_sendTransaction", "[]"));
+
             if (httpResponse is http:Response) {
                 int statusCode = httpResponse.statusCode;
                 var jsonResponse = httpResponse.getJsonPayload();
@@ -1158,4 +926,27 @@ public function sendTransactionAndgetHash(string data) returns (string) {
             }
 
             return finalResult;
+}
+
+function constructRequest(string jsonRPCVersion, int networkId, string method, json params) returns http:Request {
+    http:Request request = new;
+    request.setHeader("Content-Type", "application/json");
+    json payload = {};
+    if (params == "[]") {
+        payload = {
+            jsonrpc: jsonRPCVersion, 
+            method: method, 
+            params: [], 
+            id: networkId
+        };
+    } else {
+        payload = {
+            jsonrpc: jsonRPCVersion, 
+            method: method, 
+            params: params, 
+            id: networkId
+        };
+    }
+    request.setJsonPayload(payload);
+    return request;
 }

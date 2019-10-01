@@ -17,31 +17,17 @@
 import ballerina/http;
 import ballerina/log;
 import ballerina/io;
-import ballerina/config;
 import ballerina/math;
-// import ballerina/mysql;
-// import ballerina/sql;
 import ballerinax/java.jdbc;
 import wso2/ethereum;
 import wso2/utils;
 import ballerina/runtime;
 import ballerina/time;
-import ballerina/lang.'int;
-import ballerina/lang.'string;
 import ballerina/stringutils;
+import ballerina/jsonutils;
 
 listener http:Listener uiGovIDLogin = new(9090);
-//listener http:Listener uiGovID = new(9093);
 
-
-// mysql:Client ssiDB = new({
-//         host: "192.168.32.1",
-//         port: 3306,
-//         name: "ssidb",
-//         username: "test",
-//         password: "test",
-//         dbOptions: { useSSL: false }
-//     });
 jdbc:Client ssiDB = new({
         url: "jdbc:mysql://192.168.32.1:3306/ssidb",
         username: "test",
@@ -57,15 +43,15 @@ string pk = "";
 string randomKey = "";
 
 ethereum:EthereumConfiguration ethereumConfig = {
-jsonRpcEndpoint: "http://192.168.32.1:8083",
-jsonRpcVersion: "2.0",
-networkId: "2000"
+    jsonRpcEndpoint: "http://192.168.32.1:8083",
+    jsonRpcVersion: "2.0",
+    networkId: "2000"
 };
 
 string ethereumAccount = "0x3dd551059b5ba2fd8fe48bf5699bd54eea46bd53";
 
 string jsonRpcEndpoint = ethereumConfig.jsonRpcEndpoint;
-http:Client ethereumClient = new(jsonRpcEndpoint, config = ethereumConfig.clientConfig);
+http:Client ethereumClient = new ("http://192.168.32.1:8083");
 
 @http:ServiceConfig { basePath:"/",
     cors: {
@@ -83,13 +69,12 @@ service uiServiceGovIDLogin on uiGovIDLogin {
             allowHeaders: ["Authorization, Lang"]
         }
     }
-   resource function displayLoginPage(http:Caller caller, http:Request req, string name, string message) {
+   resource function displayLoginPage(http:Caller caller, http:Request req) {
        string buffer = readFile("web/govid-login.html");
        
        http:Response res = new;
 
        if (caller.localAddress.host != "") {
-           //buffer= buffer.replace("localhost", caller.localAddress.host);
            buffer= stringutils:replace(buffer,"localhost", caller.localAddress.host);
        }
 
@@ -113,14 +98,13 @@ service uiServiceGovIDLogin on uiGovIDLogin {
             allowHeaders: ["Authorization, Lang"]
         }
     }
-   resource function processLogin(http:Caller caller, http:Request req, string name, string message) returns error?{
+   resource function processLogin(http:Caller caller, http:Request req) returns error?{
         var requestVariableMap = check req.getFormParams();
         string username = requestVariableMap["username"]  ?: "";
         string password = requestVariableMap["pwd"]  ?: "";
         var authenticated = false;
 
         foreach var x in userMap {
-            //if (username.equalsIgnoreCase(x[0]) && password.equalsIgnoreCase(x[1])) {
             if (stringutils:equalsIgnoreCase(username,x[0]) && stringutils:equalsIgnoreCase(password,x[1])) {
                 io:println("Welcome " + username);
                 authenticatedMap[username] = true;
@@ -152,18 +136,15 @@ service uiServiceGovIDLogin on uiGovIDLogin {
             allowHeaders: ["Authorization, Lang"]
         }
     }
-   resource function displayLoginPage2(http:Caller caller, http:Request req, string name, string message) returns error? {
+   resource function displayLoginPage2(http:Caller caller, http:Request req) returns error? {
        string username = req.getQueryParamValue("username") ?: "";
 
-       //if ((!(username.equalsIgnoreCase(""))) && authenticatedMap[username] == true) {
-        if ((!(stringutils:equalsIgnoreCase(username,""))) && authenticatedMap[username] == true) {
+       if ((!(stringutils:equalsIgnoreCase(username,""))) && authenticatedMap[username] == true) {
             string buffer = readFile("web/govid-request.html");
             
             http:Response res = new;
 
             if (caller.localAddress.host != "") {
-                // buffer= buffer.replace("localhost", caller.localAddress.host);
-                // buffer= buffer.replace("EMPTYUNAME", username);
                 buffer= stringutils:replace(buffer,"localhost", caller.localAddress.host);
                 buffer= stringutils:replace(buffer,"EMPTYUNAME", username);
             }
@@ -187,7 +168,7 @@ service uiServiceGovIDLogin on uiGovIDLogin {
             if (caller.localAddress.host != "") {
                 hostname= caller.localAddress.host;
             }
-            //buffer = buffer.replace("MSG", "Re-try login via : <a href='http://" + caller.localAddress.host + ":9090'>Login Page</a>");
+
             buffer = stringutils:replace(buffer,"MSG", "Re-try login via : <a href='http://" + caller.localAddress.host + ":9090'>Login Page</a>");
 
             http:Response res = new;
@@ -212,7 +193,7 @@ service uiServiceGovIDLogin on uiGovIDLogin {
             allowHeaders: ["Authorization, Lang"]
         }
     }
-   resource function sendGOVIDRequest(http:Caller caller, http:Request req, string name, string message) {
+   resource function sendGOVIDRequest(http:Caller caller, http:Request req) {
        http:Response res = new;
 
        res.setFileAsPayload("web/govid-request.css", contentType = "text/css");
@@ -232,7 +213,7 @@ service uiServiceGovIDLogin on uiGovIDLogin {
             allowHeaders: ["Authorization, Lang"]
         }
     }
-   resource function sendBundle(http:Caller caller, http:Request req, string name, string message) {
+   resource function sendBundle(http:Caller caller, http:Request req) {
        http:Response res = new;
 
        res.setFileAsPayload("web/bundle.js", contentType = "text/javascript");
@@ -252,7 +233,7 @@ service uiServiceGovIDLogin on uiGovIDLogin {
             allowHeaders: ["Authorization, Lang"]
         }
     }
-   resource function sendFileSaver(http:Caller caller, http:Request req, string name, string message) {
+   resource function sendFileSaver(http:Caller caller, http:Request req) {
        http:Response res = new;
 
        res.setFileAsPayload("web/FileSaver.js", contentType = "text/javascript");
@@ -272,7 +253,7 @@ service uiServiceGovIDLogin on uiGovIDLogin {
             allowHeaders: ["Authorization, Lang"]
         }
     }
-   resource function processRegistration(http:Caller caller, http:Request req, string name, string message) returns error?{
+   resource function processRegistration(http:Caller caller, http:Request req) returns error?{
         var requestVariableMap = check req.getFormParams();
         string firstName = requestVariableMap["firstName"]  ?: "";
         string lastName = requestVariableMap["lastName"]  ?: "";
@@ -290,10 +271,6 @@ service uiServiceGovIDLogin on uiGovIDLogin {
         io:println(("insert into ssidb.govid(firstname, lastname, streetaddress, city, state, country, postcode, dob ,did) " + "values ('"+ firstName +"', '" + lastName + "', '" + streetAddress + "', '"+ city +"', '"+ state +"', '" + postcode + "', '" + country + "', '" + date + "', '" + did + "');"));
 
         var ret = ssiDB->update(<@untainted> ("insert into ssidb.govid(firstname, lastname, streetaddress, city, state, postcode, country, dob, did) " + "values ('"+ firstName +"', '" + lastName + "', '" + streetAddress + "', '"+ city +"', '"+ state +"', '" + postcode + "', '" + country + "','" + date + "', '" + did + "');"));
-        //var ret = ssiDB->update(untaint "insert into ssidb.govid");
-
-        //handleUpdate(ret, "Insert to ssiDB");
-
         var result = caller->respond("done");
 
         if (result is error) {
@@ -311,13 +288,11 @@ service uiServiceGovIDLogin on uiGovIDLogin {
             allowHeaders: ["Authorization, Lang"]
         }
     }
-   resource function logout(http:Caller caller, http:Request req, string name, string message) {
+   resource function logout(http:Caller caller, http:Request req) {
        var requestVariableMap = req.getQueryParams();
-       //string username = requestVariableMap["username"]  ?: "";
        string username = req.getQueryParamValue("username")  ?: "";
 
-       //if ((!(username.equalsIgnoreCase(""))) && authenticatedMap[username] == true) {
-        if ((!(stringutils:equalsIgnoreCase(username,""))) && authenticatedMap[username] == true) {
+       if ((!(stringutils:equalsIgnoreCase(username,""))) && authenticatedMap[username] == true) {
            authenticatedMap[username] = false;
        }
 
@@ -326,7 +301,6 @@ service uiServiceGovIDLogin on uiGovIDLogin {
        http:Response res = new;
 
        if (caller.localAddress.host != "") {
-           //buffer= buffer.replace("localhost", caller.localAddress.host);
            buffer= stringutils:replace(buffer,"localhost", caller.localAddress.host);
        }
 
@@ -351,11 +325,10 @@ service uiServiceGovIDLogin on uiGovIDLogin {
             allowHeaders: ["Authorization, Lang"]
         }
     }
-   resource function api(http:Caller caller, http:Request req, string name, string message) returns error?{
+   resource function api(http:Caller caller, http:Request req) returns error?{
         var requestVariableMap = check req.getFormParams();
        
        if (requestVariableMap["command"] == "cmd1") {
-            //if (requestVariableMap.hasKey("secureToken") && (!randomKey.equalsIgnoreCase(requestVariableMap["secureToken"] ?: ""))) {
             if (requestVariableMap.hasKey("secureToken") && (!stringutils:equalsIgnoreCase(randomKey,requestVariableMap["secureToken"] ?: ""))) {
                 io:println("incorrect sec token");
                 var result = caller->respond("incorrect-token");
@@ -375,19 +348,14 @@ service uiServiceGovIDLogin on uiGovIDLogin {
             }
         } else if (requestVariableMap["command"] == "requestvc") {
             var did = requestVariableMap["did"] ?: "";
-            //var publicKey = requestVariableMap["publicKey"] ?: "";
-
-            //did = did.replace("%2C", ",");
             did = stringutils:replace(did,"%2C", ",");
             did = utils:binaryStringToString(did);
-            //int index2 = did.indexOf("\"id\": \"did:ethr:") + 16;
+
             int index2 = did.indexOf("\"id\": \"did:ethr:") ?: 0 + 16;
             string didmid = did.substring(index2, index2+64);
 
-            //index2 = did.indexOf("-----BEGIN PUBLIC KEY-----")  + 26;
             index2 = did.indexOf("-----BEGIN PUBLIC KEY-----") ?: 0 + 26;
 
-            //int index3 = did.indexOf("-----END PUBLIC KEY-----");
             int index3 = did.indexOf("-----END PUBLIC KEY-----") ?: 0;
             var publicKey = did.substring(index2, index3);
 
@@ -406,10 +374,7 @@ service uiServiceGovIDLogin on uiGovIDLogin {
                 if (jsonResponse is map<json>[]) {
                     if (jsonResponse[0]["error"] == null) {
                         finalResult = jsonResponse[0].result.toString();
-                        var strVal = jsonResponse[0].result;
-                        if (strVal is json) {
-                            pkHash = strVal["input"].toString();
-                        }
+                        pkHash = jsonResponse[0].input.toString();
                     } else {
                             error err = error("(wso2/ethereum)EthereumError", message="Error occurred while accessing the JSON payload of the response");
                             finalResult = jsonResponse[0]["error"].toString();
@@ -431,7 +396,6 @@ service uiServiceGovIDLogin on uiGovIDLogin {
                 string randKey = generateRandomKey(16);
                 sessionMap[didmid] = randKey;
                 finalResult = utils:encryptRSAWithPublicKey(publicKey, randKey);
-                //finalResult = check crypto:encryptAesEcb(inputArr, rsaKeyArr, crypto:NONE);
             } else {
                 finalResult = "Failure in Key Verification";
             }
@@ -452,19 +416,15 @@ service uiServiceGovIDLogin on uiGovIDLogin {
         } else if (requestVariableMap ["command"] == "encresponse") {
             var did = requestVariableMap["did"] ?: "";
             var encryptedval = requestVariableMap["encryptedval"] ?: "";
-            //var publicKey = requestVariableMap["publicKey"] ?: "";
 
-            //did = did.replace("%2C", ",");
             did = stringutils:replace(did,"%2C", ",");
             did = utils:binaryStringToString(did);
-            //int index2 = did.indexOf("\"id\": \"did:ethr:") + 16 ?: 0;
+
             int index2 = did.indexOf("\"id\": \"did:ethr:") ?: 0 + 16;
             string didmid = did.substring(index2, index2+64);
 
-            //index2 = did.indexOf("-----BEGIN PUBLIC KEY-----")  + 26 ?: 0;
             index2 = did.indexOf("-----BEGIN PUBLIC KEY-----")  ?: 0 + 26 ;
 
-            //int index3 = did.indexOf("-----END PUBLIC KEY-----");
             int index3 = did.indexOf("-----END PUBLIC KEY-----") ?: 0;
             var publicKey = did.substring(index2, index3);
             var didmidOrg = didmid;
@@ -502,7 +462,7 @@ service uiServiceGovIDLogin on uiGovIDLogin {
             allowHeaders: ["Authorization, Lang"]
         }
     }
-   resource function secTokenAPI(http:Caller caller, http:Request req, string name, string message) returns error?{
+   resource function secTokenAPI(http:Caller caller, http:Request req) returns error?{
         var requestVariableMap = check req.getFormParams();
        
        if (requestVariableMap.hasKey("randomKey")) {
@@ -525,11 +485,6 @@ byte[] pingData = ping.toBytes();
     idleTimeoutInSeconds: 120
 }
 service basic on new http:Listener(9095) {
-
-    // string ping = "ping";
-    // //byte[] pingData = ping.toByteArray("UTF-8");
-    // byte[] pingData = ping.toBytes();
-
     resource function onOpen(http:WebSocketCaller caller) {
         io:println("\nNew client connected");
         io:println("Connection ID: " + caller.getConnectionId());
@@ -558,9 +513,6 @@ service basic on new http:Listener(9095) {
                 log:printError("Error sending ping", <error> err);
             }
         } else if (text == "closeMe") {
-            // var err = caller->close(statusCode = 1001,
-            //                 reason = "You asked me to close the connection",
-            //                 timeoutInSecs = 0);
             error? result = caller->close(statusCode = 1001,
                             reason = "You asked me to close the connection",
                             timeoutInSeconds = 0);
@@ -568,16 +520,6 @@ service basic on new http:Listener(9095) {
                 log:printError("Error occurred when closing connection", <error> result);
             }
         } else {
-            // chatBuffer = <@untainted> text + "\r\n";
-            // var err = caller->pushText(chatBuffer);
-            // if (err is error) {
-            //     log:printError("Error occurred when sending text", err = err);
-            // }
-
-            // io:println("Pinging...");
-            // var err2 = caller->ping(self.pingData);
-            // if (err2 is error) {
-            //     log:printError("Error sending ping", err = err);
             var err = caller->pushText("You said: " + text);
             if (err is http:WebSocketError) {
                 log:printError("Error occurred when sending text", <error> err);
@@ -597,11 +539,8 @@ service basic on new http:Listener(9095) {
 
     resource function onPing(http:WebSocketCaller caller, byte[] data) {
         var err = caller->pong(data);
-        //if (err is error) {
         if (err is http:WebSocketError) {
-            // log:printError("Error occurred when closing the connection", err = err);
-            log:printError("Error occurred when closing the connection", <error> err);
-        
+            log:printError("Error occurred when closing the connection", <error> err);        
         }
     }
 
@@ -611,13 +550,7 @@ service basic on new http:Listener(9095) {
 
     resource function onIdleTimeout(http:WebSocketCaller caller) {
         io:println("\nReached idle timeout");
-        // io:println("Closing connection " + caller.id);
-        // var err = caller->close(statusCode = 1001, reason =
-        //                             "Connection timeout");
-        // if (err is error) {
-        //     log:printError("Error occured when closing the connection",
-        //                         err = err);
-        // }
+
         io:println("Closing connection " + caller.getConnectionId());
         var err = caller->close(statusCode = 1001, reason =
                                     "Connection timeout");
@@ -627,14 +560,11 @@ service basic on new http:Listener(9095) {
     }
 
     resource function onError(http:WebSocketCaller caller, error err) {
-        // log:printError("Error occurred ", err = err);
         log:printError("Error occurred ", <error> err);
     }
 
     resource function onClose(http:WebSocketCaller caller, int statusCode,
                                 string reason) {
-        // io:println(string `Client left with {{statusCode}} because
-        //             {{reason}}`);
         io:println(string `Client left with ${statusCode} because
                     ${reason}`);
     }
@@ -647,7 +577,6 @@ public function readFile(string filePath) returns string {
     if (readableByteChannel is io:ReadableByteChannel) {
 
         io:ReadableCharacterChannel | io:Error readableCharChannel = new io:ReadableCharacterChannel(readableByteChannel, "UTF-8");
-        //var readableCharChannel = new io:ReadableCharacterChannel(readableByteChannel, "UTF-8");
 
         if (readableCharChannel is io:ReadableCharacterChannel) {
             var readableRecordsChannel = new io:ReadableTextRecordChannel(readableCharChannel, fs = ",", rs = "\n");
@@ -685,8 +614,7 @@ public function generateRandomKey(int keyLen) returns (string){
 
 public function getVerifiableCredentials(string didmid) returns (string) {
     time: Time currentTime = time:currentTime();
-    // string customTimeString = currentTime.format("dd-MM-yyyy");
-    string | error timeStr = check time:format(currentTime,"dd-MM-yyyy");
+    string | error timeStr = time:format(currentTime,"dd-MM-yyyy");
     string customTimeString = "";
     if (timeStr is string) {
         customTimeString = timeStr;
@@ -698,16 +626,9 @@ public function getVerifiableCredentials(string didmid) returns (string) {
 
     if (selectRet is table<record {}>) {
         io:println("\n the table into json");
-        var jsonConversionRet = selectRet;
-        
-        if (jsonConversionRet is json) {
-            if (jsonConversionRet.length() > 0) {
-                country = jsonConversionRet[0]["country"].toString();
-                firstname = jsonConversionRet[0]["firstname"].toString();
-            } else {
-                return "none";
-            }
-        }
+        json jsonConversionRet = jsonutils:fromTable(selectRet);
+        country = jsonConversionRet.country.toString();
+        firstname = jsonConversionRet.firstname.toString();
     }
 
     string finalResult = sendTransactionAndgetHash(country);
@@ -780,7 +701,6 @@ public function sendTransactionAndgetHash(string data) returns (string) {
                 if (jsonResponse is map<json>[]) {
                     if (jsonResponse[0]["error"] == null) {
                         finalResult2 = jsonResponse[0].result.toString();
-                        //finalResult = HexStringToString(inputString);
                     } else {
                             error err = error("(wso2/ethereum)EthereumError", message="Error occurred while accessing the JSON payload of the response");
                             finalResult2 = jsonResponse[0]["error"].toString();
@@ -796,10 +716,8 @@ public function sendTransactionAndgetHash(string data) returns (string) {
                 errorFlag2 = true;
             }
 
-            //byte[] output = crypto:hashSha256(publicKey.toByteArray("UTF-8"));
-            //string hexEncodedString = "0xe1db84093f660c49846c87cf626ade2bc54135f2420d835cfae6ba01d5d903e2";//encoding:encodeHex(output);
-            string hexEncodedString = "0x" + utils:hashSHA256(data);//encoding:encodeHex(output);
-            //io:println("Hex encoded hash with SHA256: " + hexEncodedString);
+            string hexEncodedString = "0x" + utils:hashSHA256(data);
+
             //Next we will write the blockchain record
             http:Request request = new;
             request.setHeader("Content-Type", "application/json");

@@ -1,6 +1,14 @@
 [project]
-org-name= "miyurud"
+org-name= "wso2"
 version= "0.1.0"
 
 [dependencies]
-"wso2/utils" = { path = "lib/utils-2019r3-java8-0.1.0.balo"}
+
+[platform]
+target = "java8"
+
+    [[platform.libraries]]
+    artifactId = "utils"
+    path = "/home/miyurud/git/ballerina-eth-utils/target/bin/utils.jar"
+    groupId = "wso2"
+    modules = ["utils"]
