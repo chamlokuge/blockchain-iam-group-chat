@@ -62,10 +62,11 @@ jsonRpcVersion: "2.0",
 networkId: "2000"
 };
 
+ethereum:Client ethereumClient = new(ethereumConfig);
 string ethereumAccount = "0x3dd551059b5ba2fd8fe48bf5699bd54eea46bd53";
 
 string jsonRpcEndpoint = ethereumConfig.jsonRpcEndpoint;
-http:Client ethereumClient = new(jsonRpcEndpoint, config = ethereumConfig.clientConfig);
+//http:Client ethereumClient = new(jsonRpcEndpoint, config = ethereumConfig.clientConfig);
 
 @http:ServiceConfig { basePath:"/",
     cors: {
