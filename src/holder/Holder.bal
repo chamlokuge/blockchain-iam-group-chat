@@ -1089,12 +1089,14 @@ public function readFile(string filePath) returns string {
 
 public function sendTransactionAndgetHash(string data) returns (string) {
                 http:Request request2 = new;
+                //ethereum:Request request2 = new;
             request2.setHeader("Content-Type", "application/json");
             request2.setJsonPayload({"jsonrpc":"2.0", "id":"2000", "method":"personal_unlockAccount", "params": [ethereumAccount,"1234",null]});
 
             string finalResult2 = "";
             boolean errorFlag2 = false;
             var httpResponse2 = ethereumClient -> post("/", request2);
+            //var httpResponse2 = ethereumClient -> post("/", {"jsonrpc":"2.0", "id":"2000", "method":"personal_unlockAccount", "params": [ethereumAccount,"1234",null]});
 
             if (httpResponse2 is http:Response) {
                 int statusCode = httpResponse2.statusCode;
